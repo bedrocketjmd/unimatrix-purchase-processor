@@ -5,16 +5,13 @@ $LOAD_PATH.unshift( lib )     unless $LOAD_PATH.include?( lib )
 
 Gem::Specification.new do | spec |
   spec.name          = 'purchase_processor'
-  spec.version       = '1.0.0' 
+  spec.version       = '1.0.0'
   spec.authors       = [ 'Stefan Hartmann' ]
   spec.email         = [ 'stefanhartmann@sportsrocket.com' ]
-
   spec.summary       = %q{ Library of Stripe + Paypal related purchase processing methods. }
   spec.homepage      = 'https://github.com/bedrocketjmd/unimatrix-purchase-processor'
   spec.license       = 'MIT'
-
   spec.files         = [ *Dir.glob( 'lib/**/**/*'), *Dir.glob( 'config/**/*' ) ]
-  spec.bindir        = 'bin'
   spec.require_paths = [ 'lib' ]
 
   spec.add_development_dependency 'codeclimate-test-reporter', '~> 0'
@@ -24,4 +21,9 @@ Gem::Specification.new do | spec |
   spec.add_development_dependency 'rspec', '~> 3.0'
   spec.add_development_dependency 'pry', '~> 0'
   spec.add_development_dependency 'pry-nav', '~> 0'
+  spec.add_runtime_dependency 'stripe', '>= 0'
+  spec.add_runtime_dependency 'paypal-sdk-rest', '>= 0'
+  spec.add_runtime_dependency 'avatax', '>= 0'
+  spec.add_runtime_dependency 'google_currency', '>= 0'
+  spec.add_runtime_dependency 'money', '>= 0'
 end
