@@ -4,6 +4,6 @@ module Unimatrix
   end
 end
 
-require 'adapter/free/free_adapter'
-require 'adapter/paypal/paypal_adapter'
-require 'adapter/stripe/stripe_adapter'
+require './adapter/free/free_adapter'
+require './adapter/paypal/paypal_adapter'
+require './adapter/stripe/stripe_adapter'
