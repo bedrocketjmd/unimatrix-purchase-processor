@@ -13,7 +13,7 @@ module Unimatrix
         end
       end
 
-      def self.set_local_product_name
+      def self.local_product_name
         app_name = configuration.application_name.to_sym
         unless app_name.nil?
           app_products = {
