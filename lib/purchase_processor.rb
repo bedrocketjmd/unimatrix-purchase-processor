@@ -1,4 +1,5 @@
 require 'purchase_processor/configuration'
+require 'purchase_processor/currency_helper'
 require 'purchase_processor/adapter/adapter'
 
 # FreeAdapter Files
