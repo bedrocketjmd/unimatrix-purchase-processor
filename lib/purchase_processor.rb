@@ -1,9 +1,5 @@
-module Unimatrix
-  module PurchaseProcessor
-    GEM_ROOT = File.expand_path( '../..', __FILE__ )
-  end
-end
-
-require './adapter/free/free_adapter'
-require './adapter/paypal/paypal_adapter'
-require './adapter/stripe/stripe_adapter'
+require 'purchase_processor/configuration'
+require 'purchase_processor/adapter/adapter'
+require 'purchase_processor/adapter/free/free_adapter'
+require 'purchase_processor/adapter/paypal/paypal_adapter'
+require 'purchase_processor/adapter/stripe/stripe_adapter'
