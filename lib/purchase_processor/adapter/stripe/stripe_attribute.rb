@@ -10,7 +10,9 @@ module Unimatrix
         if object.try( :subscription )
           payments_subscription = PaymentsSubscription.find_by( provider_id: object.subscription )
           attributes[ :payments_subscription_id ] = payments_subscription.id
-          attributes[ :customer_product_id ] = payments_subscription.customer_product.id
+
+          # dynamically assigns id of either a realm_product, or customer_product, depending on application
+          attributes[ "#{ local_product_name }_id".to_sym ] = local_product( payments_subscription ).id
         end
 
         if object.try(:lines)
@@ -36,7 +38,7 @@ module Unimatrix
 
           StripeAdapter.approximate_missing_values( attributes )
         else
-          attributes
+          attributes.merge!( StripeAdapter.attributes_from_failed_invoice( attributes, object ) )
         end
       end
 
@@ -77,6 +79,7 @@ module Unimatrix
             charge = Stripe::Charge.retrieve( object.charge )
             attributes.merge!( StripeAdapter.attributes_from_charge( charge ) )
           end
+
           subscription = object.lines.data.select { | item | item.type == 'subscription' }
           subscription = subscription.first
           attributes.merge!( StripeAdapter.attributes_from_metadata( subscription.metadata ) )
@@ -194,6 +197,22 @@ module Unimatrix
           tax_percent: related_transaction.tax_percent,
           subtotal_usd: related_transaction.subtotal_usd
         }
+      end
+
+      def attributes_from_failed_invoice( attributes, object )
+        charge = Stripe::Charge.retrieve( object.charge )
+
+        if charge && charge.source
+          if charge.source.card
+            card = charge.source.card
+
+            attributes = {
+              provider_id: object.charge,
+              payment_method: card.brand,
+              payment_identifier: card.last4
+            }
+          end
+        end
       end
 
       def approximate_missing_values( attributes )
