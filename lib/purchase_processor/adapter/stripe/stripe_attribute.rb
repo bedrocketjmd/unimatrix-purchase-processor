@@ -1,6 +1,6 @@
 module Unimatrix
   module PurchaseProcessor
-    class StripeAdapter < Adapter
+    class StripeAttribute < Adapter
       include CurrencyHelper
 
       #-------------------------------------------------------------------------------
