@@ -7,7 +7,7 @@ module Unimatrix
       end
 
       def self.local_product( resource )
-        product_name = set_local_product_name
+        product_name = local_product_name
         if resource.respond_to?( product_name )
           resource.send( product_name )
         end
