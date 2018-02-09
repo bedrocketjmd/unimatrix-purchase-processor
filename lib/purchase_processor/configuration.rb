@@ -6,11 +6,12 @@ module Unimatrix
       include Singleton
 
       def self.set_local_product_name( app_name )
+
         app_products = {
           merchant: 'realm_product',
           dealer:   'customer_product'
         }
-        app_products[ app_name.to_sym ]
+        app_products[ app_name ]
       end
 
       def self.field( field_name, options={} )
