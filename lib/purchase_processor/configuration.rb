@@ -5,14 +5,6 @@ module Unimatrix
     class Configuration
       include Singleton
 
-      def self.set_local_product_name( app_name )
-        app_products = {
-          merchant: 'realm_product',
-          dealer:   'customer_product'
-        }
-        app_products[ app_name.to_sym ]
-      end
-
       def self.field( field_name, options={} )
         class_eval(
           "def #{ field_name }( *arguments ); " +
@@ -29,7 +21,7 @@ module Unimatrix
         )
       end
 
-      field :local_product_name,  default: set_local_product_name( ENV[ 'APPLICATION_NAME' ] )
+      field :application_name, default: nil
     end
   end
 end
