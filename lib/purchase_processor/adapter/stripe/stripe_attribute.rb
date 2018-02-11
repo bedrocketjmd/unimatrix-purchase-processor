@@ -1,6 +1,8 @@
 module Unimatrix
   module PurchaseProcessor
     class StripeAttribute < Adapter
+      include CurrencyHelper::ClassMethods
+
       def attributes_from_webhook( event )
         object = event.data.object
         object_name = object.object
