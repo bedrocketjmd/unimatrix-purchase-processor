@@ -149,7 +149,7 @@ module Unimatrix
 
         if delinquent_invoice && delinquent_invoice.paid && delinquent_invoice.closed
           payments_subscription.resume_subscription
-          relation = payments_subscription.customer_product
+          relation = local_product( payments_subscription )
           relation.update( expires_at: Time.at( provider_subscription.current_period_end ) )
         end
         payments_subscription
@@ -195,15 +195,11 @@ module Unimatrix
             relation.payments_subscription.pause_subscription
           end
 
-          mailer_method = :payment_error
-          subject_line = "There was an error processing your subscription"
+          subject_line = "Your subscription has been suspended"
+          payments_subscription = relation.payments_subscription
 
           PaymentsSubscriptionMailer.payments_subscription_suspended(
-            relation.payments_subscription, "Your subscription has been suspended"
-          ).deliver_now
-
-          TransactionMailer.send(
-            mailer_method, transaction, subject_line
+            payments_subscription, subject_line, transaction, stripe_subscription
           ).deliver_now
         end
       end

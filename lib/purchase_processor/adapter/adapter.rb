@@ -1,6 +1,6 @@
 module Unimatrix
   module PurchaseProcessor
-    class Adapter < Configuration
+    class Adapter
       def self.configuration( &block )
         Configuration.instance().instance_eval( &block ) unless block.nil?
         Configuration.instance()

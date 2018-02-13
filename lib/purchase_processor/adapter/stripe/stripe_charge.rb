@@ -1,7 +1,7 @@
 module Unimatrix
   module PurchaseProcessor
     class StripeCharge < Adapter
-      include CurrencyHelper
+      include CurrencyHelper::ClassMethods
 
       def create_charge( customer:, amount:, offer:, currency:, metadata:, request_attributes: nil, source_type:, stripe_customer: )
         charge_attributes = {

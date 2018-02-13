@@ -43,6 +43,11 @@ module Unimatrix
         adapter.attributes_from_metadata( object )
       end
 
+      def self.attributes_from_failed_invoice( attributes, object )
+        adapter ||= StripeAttribute.new
+        adapter.attributes_from_failed_invoice( attributes, object )
+      end
+
       def self.subscription_from_event( event )
         adapter ||= StripeSubscription.new
         adapter.subscription_from_event( event )
