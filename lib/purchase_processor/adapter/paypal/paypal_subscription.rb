@@ -273,7 +273,7 @@ module Unimatrix
 
         if new_balance && new_balance.zero?
           payments_subscription.resume_subscription
-          relation = payments_subscription.customer_product
+          relation = Adapter.local_product( payments_subscription )
           relation.update( expires_at: provider_subscription.agreement_details.next_billing_date )
         end
         payments_subscription
