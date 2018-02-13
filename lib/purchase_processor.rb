@@ -1,6 +1,7 @@
 require 'purchase_processor/configuration'
 require 'purchase_processor/currency_helper'
 require 'purchase_processor/adapter/adapter'
+require 'paypal-sdk-rest'
 
 # FreeAdapter Files
 require 'purchase_processor/adapter/free/free_adapter'
