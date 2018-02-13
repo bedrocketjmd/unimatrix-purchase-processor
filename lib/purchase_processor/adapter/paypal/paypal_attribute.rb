@@ -21,7 +21,7 @@ module Unimatrix
 
         attributes[ :payments_subscription_id ] = payments_subscription.id
 
-        attributes[ :customer_product_id ] = payments_subscription.customer_product.id
+        attributes[ "#{ Adapter.local_product_name }_id".to_sym ] = Adapter.local_product( payments_subscription ).id
 
         if [ 'sale', 'agreement', 'dispute' ].include? object_name
           attributes = PaypalAdapter.send( "attributes_from_#{ object_name }", object ).merge( attributes )
@@ -33,11 +33,13 @@ module Unimatrix
       def attributes_from_metadata( event, payments_subscription )
         transaction_attributes = transaction_information_from_webhook( event.resource[ 'amount' ], payments_subscription )
 
+        local_product = local_product( payments_subscription )
+
         attributes = {
-          realm_id: payments_subscription.customer_product.realm_id,
-          offer_id: payments_subscription.customer_product.offer_id,
-          product_id: payments_subscription.customer_product.product_id,
-          customer_id: payments_subscription.customer_product.customer_id,
+          realm_id: local_product.realm_id,
+          offer_id: local_product.offer_id,
+          product_id: local_product.product_id,
+          customer_id: local_product.customer_id,
           device_platform: payments_subscription.device_platform,
           provider: "Paypal",
         }
@@ -58,12 +60,12 @@ module Unimatrix
 
          attributes = {
            subtotal: subtotal,
-           subtotal_usd: exchange_to_usd( subtotal, payments_subscription.customer_product.offer.currency ),
+           subtotal_usd: exchange_to_usd( subtotal, payments_subscription.offer.currency ),
            tax: tax,
            total: total,
            total_usd: exchange_to_usd( total, amount[ 'currency' ] )
          }
-       end
+      end
 
       def attributes_from_charge( object )
         if object.try( :plan )
