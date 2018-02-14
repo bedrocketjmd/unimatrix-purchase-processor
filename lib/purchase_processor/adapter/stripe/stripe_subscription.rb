@@ -161,13 +161,11 @@ module Unimatrix
         if StripeAdapter.transaction_valid?( transaction )
           new_expiry = Time.at( stripe_subscription.current_period_end )
           # if its the first time subscription - subscription confirmation email
-          payments = relation.successful_payments
+          payments = relation.payments_subscription.successful_transactions.count
           if payments.present? && payments >= 1
-            relation.successful_payments =+ 1
             mailer_method = :payment_received
             subject_line = "We received your payment for #{ transaction.offer.name }"
           else
-            relation.successful_payments = 1
             mailer_method = :purchase_confirmation
             subject_line = "Thanks for your order!"
           end
