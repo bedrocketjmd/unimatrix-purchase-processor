@@ -33,7 +33,7 @@ module Unimatrix
       def attributes_from_metadata( event, payments_subscription )
         transaction_attributes = transaction_information_from_webhook( event.resource[ 'amount' ], payments_subscription )
 
-        local_product = local_product( payments_subscription )
+        local_product = Adapter.local_product( payments_subscription )
 
         attributes = {
           realm_id: local_product.realm_id,

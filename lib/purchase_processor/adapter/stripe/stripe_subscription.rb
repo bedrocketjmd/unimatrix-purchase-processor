@@ -149,7 +149,7 @@ module Unimatrix
 
         if delinquent_invoice && delinquent_invoice.paid && delinquent_invoice.closed
           payments_subscription.resume_subscription
-          relation = local_product( payments_subscription )
+          relation = Adapter.local_product( payments_subscription )
           relation.update( expires_at: Time.at( provider_subscription.current_period_end ) )
         end
         payments_subscription
