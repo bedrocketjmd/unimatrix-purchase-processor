@@ -101,14 +101,10 @@ module Unimatrix
 
           mailer_method = :payment_error
 
-          subject_line = "There was an error processing your subscription"
+          subject_line = "Your subscription has been suspended"
 
           PaymentsSubscriptionMailer.payments_subscription_suspended(
-            relation.payments_subscription, "Your subscription has been suspended"
-          ).deliver_now
-
-          TransactionMailer.send(
-            mailer_method, transaction, subject_line
+            payments_subscription, subject_line, transaction, agreement
           ).deliver_now
         end
       end
