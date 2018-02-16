@@ -133,25 +133,29 @@ module Unimatrix
       end
 
       def self.create_or_confirm_existing_source( adapter, customer, attributes )
-        stripe_customer = adapter.provider_customer( customer ) if adapter.respond_to? ( :provider_customer )
+        begin
+          stripe_customer = adapter.provider_customer( customer ) if adapter.respond_to? ( :provider_customer )
 
-        if stripe_customer
-          customer_cards = stripe_customer.sources.data
-          source = Stripe::Source.retrieve( attributes[ :source ] )
+          if stripe_customer
+            customer_cards = stripe_customer.sources.data
+            source = Stripe::Source.retrieve( attributes[ :source ] )
 
-          existing_card = customer_cards.detect do | customer_source |
-            if customer_source[ 'card' ]
-              customer_source.card.fingerprint == source.card.fingerprint &&
-              customer_source.card.exp_month == source.card.exp_month &&
-              customer_source.card.exp_year == source.card.exp_year
+            existing_card = customer_cards.detect do | customer_source |
+              if customer_source[ 'card' ]
+                customer_source.card.fingerprint == source.card.fingerprint &&
+                customer_source.card.exp_month == source.card.exp_month &&
+                customer_source.card.exp_year == source.card.exp_year
+              end
             end
-          end
 
-          if !existing_card
-            stripe_customer.sources.create( { :source => attributes[ :source ] } )
-          end
+            if !existing_card
+              stripe_customer.sources.create( { :source => attributes[ :source ] } )
+            end
 
-        stripe_customer
+            stripe_customer
+          end
+        rescue Stripe::CardError => error
+          error
         end
       end
     end
