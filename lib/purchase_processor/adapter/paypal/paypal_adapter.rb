@@ -99,9 +99,8 @@ module Unimatrix
             relation.payments_subscription.pause_subscription
           end
 
-          mailer_method = :payment_error
-
           subject_line = "Your subscription has been suspended"
+          payments_subscription = relation.payments_subscription
 
           PaymentsSubscriptionMailer.payments_subscription_suspended(
             payments_subscription, subject_line, transaction, agreement
