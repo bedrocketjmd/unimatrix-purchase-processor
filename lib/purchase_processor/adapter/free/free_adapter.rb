@@ -32,10 +32,6 @@ module Unimatrix
         FreeRefundTransaction.new( refund_attributes )
       end
 
-      def new_payments_subscription( customer, device_platform, offer )
-        PaymentsSubscription.new( customer: customer, provider: 'Free', device_platform: device_platform, offer: offer )
-      end
-
       def self.approximate_missing_values( transaction_attributes )
         if transaction_attributes[ :currency ].present?
           if transaction_attributes[ :currency ] == 'USD'
