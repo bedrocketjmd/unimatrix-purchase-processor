@@ -92,6 +92,7 @@ module Unimatrix
 
       def refresh_api_key( realm )
         Stripe.api_key = StripeAdapter.retrieve_key( realm.uuid )
+        Stripe.api_version = "2016-02-19"
       end
 
       def provider_customer( customer  )
