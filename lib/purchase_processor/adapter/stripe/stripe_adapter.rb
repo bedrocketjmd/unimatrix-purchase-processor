@@ -78,6 +78,11 @@ module Unimatrix
       end
 
       def self.find_webhook_event( event_id )
+        if Stripe.api_key.nil?
+          Stripe.api_key = ENV[ 'STRIPE_SECRET_KEY' ]
+          Stripe.api_version = "2016-02-19"
+        end
+
         Stripe::Event.retrieve( event_id )
       end
 
