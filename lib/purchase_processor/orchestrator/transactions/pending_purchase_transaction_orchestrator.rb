@@ -1,0 +1,2 @@
+class PendingPurchaseTransactionOrchestrator < TransactionOrchestrator
+end
