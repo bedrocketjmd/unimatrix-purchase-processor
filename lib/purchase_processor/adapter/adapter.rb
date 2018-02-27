@@ -22,6 +22,10 @@ module Unimatrix
           app_products[ app_name ]
         end
       end
+
+      def local_product_constant
+        local_product_name.split('_').map(&:capitalize).join.constantize
+      end
     end
   end
 end
