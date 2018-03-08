@@ -16,7 +16,7 @@ class PurchaseTransactionOrchestrator < TransactionOrchestrator
 
     orchestrator_response = nil
 
-    unless !purchasing_realm || !realm || !offer || !customer || !product
+    unless !realm || !offer || !customer || !product
       # For Stripe
       merge_tokens( attributes )
 
@@ -52,7 +52,7 @@ class PurchaseTransactionOrchestrator < TransactionOrchestrator
             orchestrator_response = format_error( BadRequestError, 'The charge amount must be greater than or equal to $0.50.' )
           else
             # Standard charge
-            adapter = "#{ provider }Adapter".constantize.new
+            adapter = "Unimatrix::PurchaseProcessor::#{ provider }Adapter".constantize.new
             adapter.refresh_api_key( realm ) if adapter.respond_to?( :refresh_api_key )
 
             if adapter.customer_valid?( customer ) && !orchestrator_response.is_a?( OrchestratorError )
@@ -108,7 +108,7 @@ class PurchaseTransactionOrchestrator < TransactionOrchestrator
   #----------------------------------------------------------------------------
 
   def self.existing_local_product( customer, product )
-    if local_product_constant.is_a?( CustomerProduct )
+    if Adapter.local_product_name == 'customer_product'
       CustomerProduct.where(
         customer_id: customer.id,
         product_id: product.id
@@ -168,7 +168,9 @@ class PurchaseTransactionOrchestrator < TransactionOrchestrator
       realm_product.realm = realm
     end
 
-    realm_product.save
+    if realm_product.save
+      realm_product
+    end
   end
 
   def self.create_customer_product( customer_product_attributes, period_attributes )
@@ -182,13 +184,15 @@ class PurchaseTransactionOrchestrator < TransactionOrchestrator
 
     customer_product.assign_attributes( customer_product_attributes.merge( period_attributes ) )
 
-    customer_product.save
+    if customer_product.save
+      customer_product
+    end
   end
 
   def self.complete_transaction( transaction, attributes )
     period_attributes = { expires_at: nil }
 
-    if local_product_constant.is_a?( RealmProduct )
+    if Adapter.local_product_name == 'realm_product'
       payments_subscription = create_payments_subscription( transaction, attributes )
       realm_product_attributes = { provider: attributes[ :provider ], payments_subscription_id: payments_subscription.id, offer: attributes[ :offer ] }
       local_product = create_realm_product( realm_product_attributes, period_attributes )
@@ -198,7 +202,7 @@ class PurchaseTransactionOrchestrator < TransactionOrchestrator
     end
 
     if transaction
-      transaction.update( "#{ Adapter.local_product }_id": local_product.id )
+      transaction.update( "#{ Adapter.local_product_name }_id": local_product.id )
       transaction.save
 
       if transaction.valid?
