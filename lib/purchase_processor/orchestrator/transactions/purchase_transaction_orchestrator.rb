@@ -1,6 +1,7 @@
 class PurchaseTransactionOrchestrator < TransactionOrchestrator
   def self.create_transaction( provider, attributes, request_attributes = nil )
-    realm                    = Realm.find_by( id: attributes[ :realm_id ] )
+    purchasing_realm         = Realm.find_by( uuid: ENV[ 'MERCHANT_PURCHASING_REALM' ] ) || nil
+    realm                    = Realm.find_by( id: attributes[ :realm_id ] ) || nil
     offer                    = Offer.find_by( id: attributes[ :offer_id ] )
     product                  = Product.find_by( id: attributes[ :product_id ] )
     customer                 = Customer.find_by( id: attributes[ :customer_id ] )
@@ -15,7 +16,7 @@ class PurchaseTransactionOrchestrator < TransactionOrchestrator
 
     orchestrator_response = nil
 
-    unless !realm || !offer || !customer || !product
+    unless !purchasing_realm || !realm || !offer || !customer || !product
       # For Stripe
       merge_tokens( attributes )
 
