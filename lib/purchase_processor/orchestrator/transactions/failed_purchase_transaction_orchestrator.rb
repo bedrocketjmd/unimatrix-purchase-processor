@@ -1,0 +1,2 @@
+class FailedPurchaseTransactionOrchestrator < TransactionOrchestrator
+end
