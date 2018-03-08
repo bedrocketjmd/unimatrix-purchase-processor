@@ -20,3 +20,12 @@ require 'purchase_processor/adapter/stripe/stripe_charge'
 require 'purchase_processor/adapter/stripe/stripe_customer'
 require 'purchase_processor/adapter/stripe/stripe_refund'
 require 'purchase_processor/adapter/stripe/stripe_subscription'
+
+# Orchestrator Files
+require 'purchase_processor/transactions/transaction_orchestrator'
+require 'purchase_processor/transactions/failed_purchase_transaction_orchestrator'
+require 'purchase_processor/transactions/pending_purchase_transaction_orchestrator'
+require 'purchase_processor/transactions/purchase_cancellation_transaction_orchestrator'
+require 'purchase_processor/transactions/purchase_transaction_orchestrator'
+require 'purchase_processor/transactions/refund_transaction_orchestrator'
+require 'purchase_processor/payments_subscriptions/payments_subscription_orchestrator'
