@@ -23,7 +23,7 @@ module Unimatrix
           merge_tokens( attributes )
 
           # If this is a subscription, allow multiple charges. If it's not, don't allow them.
-          unless payments_subscription_attributes.blank? && existing_customer_product( customer, product ).present?
+          unless payments_subscription_attributes.blank? && existing_local_product( customer, product ).present?
 
             coupon, discount = apply_coupons( coupon_code, offer )
 
@@ -96,8 +96,8 @@ module Unimatrix
       # private methods
 
       def self.existing_local_product( customer, product )
-        if local_product_constant.is_a?( CustomerProduct )
-          local_product_constant.where(
+        if Adapter.local_product_name == 'customer_product'
+          CustomerProduct.where(
             customer_id: customer.id,
             product_id: product.id
           ).present?
@@ -155,7 +155,7 @@ module Unimatrix
 
       def self.complete_subscription( subscriber, attributes )
         local_product = nil
-        if Adapter.local_product_constant.is_a?( RealmProduct )
+        if Adapter.local_product_name == 'realm_product'
           realm = find_or_create_realm( attributes[ :realm ], attributes[ :account_name ] )
           local_product = update_realm_product( subscriber, realm, attributes )
         else
@@ -218,7 +218,10 @@ module Unimatrix
 
         if subscriber.realm_product.nil?
           subscriber.realm_product = realm_product
-          subscriber.save
+        end
+
+        if subscriber.save
+          subscriber
         end
       end
 
