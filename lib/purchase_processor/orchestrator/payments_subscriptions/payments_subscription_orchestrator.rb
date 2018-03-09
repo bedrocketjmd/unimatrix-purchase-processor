@@ -2,7 +2,8 @@ module Unimatrix
   module PurchaseProcessor
     class PaymentsSubscriptionOrchestrator < TransactionOrchestrator
       def self.create_subscription( provider, attributes, request_attributes = nil )
-        realm                             = Realm.find_by( id: attributes[ :realm_id ] )
+        purchasing_realm                  = Realm.find_by( uuid: ENV[ 'MERCHANT_PURCHASING_REALM' ] ) || nil
+        realm                             = Realm.find_by( id: attributes[ :realm_id ] ) || nil
         offer                             = Offer.find_by( id: attributes[ :offer_id ] )
         product                           = Product.find_by( id: attributes[ :product_id ] )
         customer                          = Customer.find_by( id: attributes[ :customer_id ] )
@@ -44,9 +45,7 @@ module Unimatrix
                 adapter.refresh_api_key( realm ) if adapter.respond_to?( :refresh_api_key )
 
                 if adapter.customer_valid?( customer ) && !orchestrator_response.is_a?( OrchestratorError )
-                  # calculated_taxes = tax_helper( realm, offer, customer, 0.0 )
-
-                  tax_helper = TaxHelper.new( realm: realm, offer: offer, customer: customer, discount: discount )
+                  tax_helper = TaxHelper.new( realm: purchasing_realm || realm, offer: offer, customer: customer, discount: discount )
 
                   payments_subscription_attributes[ :tax_percent ] = tax_helper.tax_percentage
                   payments_subscription_attributes[ :tax ] = tax_helper.total_tax
