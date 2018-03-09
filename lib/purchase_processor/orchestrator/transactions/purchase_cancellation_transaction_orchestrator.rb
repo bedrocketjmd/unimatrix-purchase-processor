@@ -83,7 +83,7 @@ module Unimatrix
         end
       end
 
-      def find_local_product( local_product_id )
+      def self.find_local_product( local_product_id )
         type_name = Adapter.local_product_name
         if type_name == 'customer_product'
           CustomerProduct.find_by( id: local_product_id )
