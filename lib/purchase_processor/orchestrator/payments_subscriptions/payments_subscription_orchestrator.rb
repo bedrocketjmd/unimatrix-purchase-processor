@@ -2,7 +2,8 @@ module Unimatrix
   module PurchaseProcessor
     class PaymentsSubscriptionOrchestrator < TransactionOrchestrator
       def self.create_subscription( provider, attributes, request_attributes = nil )
-        realm                             = Realm.find_by( id: attributes[ :realm_id ] )
+        purchasing_realm                  = Realm.find_by( uuid: ENV[ 'MERCHANT_PURCHASING_REALM' ] ) || nil
+        realm                             = Realm.find_by( id: attributes[ :realm_id ] ) || nil
         offer                             = Offer.find_by( id: attributes[ :offer_id ] )
         product                           = Product.find_by( id: attributes[ :product_id ] )
         customer                          = Customer.find_by( id: attributes[ :customer_id ] )
@@ -22,7 +23,7 @@ module Unimatrix
           merge_tokens( attributes )
 
           # If this is a subscription, allow multiple charges. If it's not, don't allow them.
-          unless payments_subscription_attributes.blank? && existing_customer_product( customer, product ).present?
+          unless payments_subscription_attributes.blank? && existing_local_product( customer, product ).present?
 
             coupon, discount = apply_coupons( coupon_code, offer )
 
@@ -44,9 +45,7 @@ module Unimatrix
                 adapter.refresh_api_key( realm ) if adapter.respond_to?( :refresh_api_key )
 
                 if adapter.customer_valid?( customer ) && !orchestrator_response.is_a?( OrchestratorError )
-                  # calculated_taxes = tax_helper( realm, offer, customer, 0.0 )
-
-                  tax_helper = TaxHelper.new( realm: realm, offer: offer, customer: customer, discount: discount )
+                  tax_helper = TaxHelper.new( realm: purchasing_realm || realm, offer: offer, customer: customer, discount: discount )
 
                   payments_subscription_attributes[ :tax_percent ] = tax_helper.tax_percentage
                   payments_subscription_attributes[ :tax ] = tax_helper.total_tax
@@ -96,25 +95,14 @@ module Unimatrix
       #----------------------------------------------------------------------------
       # private methods
 
-      def self.existing_customer_product( customer, product )
-        CustomerProduct.where(
-          customer_id: customer.id,
-          product_id: product.id
-        ).active
-      end
-
-      def self.free_subscription( customer, device_platform, offer, payments_subscription, payments_subscription_attributes )
-        # this isn't really being used now
-        adapter = FreeAdapter.new
-
-        payments_subscription = adapter.new_subscription( customer, device_platform, offer )
-
-        complete_subscription( payments_subscription, payments_subscription_attributes )
-
-        if payments_subscription.persisted?
-          OrchestratorSuccess.new( payments_subscription )
+      def self.existing_local_product( customer, product )
+        if Adapter.local_product_name == 'customer_product'
+          CustomerProduct.where(
+            customer_id: customer.id,
+            product_id: product.id
+          ).present?
         else
-          format_error( BadRequestError, payments_subscription.errors.messages )
+          false
         end
       end
 
@@ -137,7 +125,8 @@ module Unimatrix
         payments_subscription_attributes = {
           offer: offer,
           tax: total_tax,
-          discount: discount
+          discount: discount,
+          account_name: account_name
         }
 
         subscriber = adapter.create_agreement(
@@ -158,16 +147,23 @@ module Unimatrix
           payments_subscription.update( provider_id: subscriber.token )
           OrchestratorRedirect.new( payments_subscription, redirect_url )
         else
+          payments_subscription.update( provider_id: subscriber.id )
           complete_subscription( payments_subscription, payments_subscription_attributes.merge( provider_id: subscriber.id ) )
           OrchestratorSuccess.new( payments_subscription )
         end
       end
 
       def self.complete_subscription( subscriber, attributes )
-        customer_product = update_customer_product( subscriber, attributes )
+        local_product = nil
+        if Adapter.local_product_name == 'realm_product'
+          realm = find_or_create_realm( attributes[ :realm ], attributes[ :account_name ] )
+          local_product = update_realm_product( subscriber, realm, attributes )
+        else
+          local_product = update_customer_product( subscriber, attributes )
+        end
 
         if subscriber
-          update_subscriber( subscriber, attributes, customer_product )
+          update_subscriber( subscriber, attributes, local_product )
           if subscriber.valid?
             PaymentsSubscriptionMailer.payments_subscription_confirmation(
               subscriber,
@@ -179,8 +175,6 @@ module Unimatrix
             )
           end
         end
-
-        return subscriber
       end
 
       def self.update_customer_product( subscriber, attributes )
@@ -203,8 +197,45 @@ module Unimatrix
         subscriber.save
       end
 
+      def self.find_or_create_realm( realm, account_name )
+        unless realm
+          realm = Realm.create( account_name: account_name )
+        end
+        realm
+      end
 
-      private_class_method :existing_customer_product, :free_subscription, :create_stripe_subscriber,
+      def self.update_realm_product( subscriber, realm, attributes )
+        realm_product_attributes = attributes.slice( :provider, :offer ).merge( { realm: realm, payments_subscription_id: subscriber.id } )
+        period_attributes = { expires_at: nil }
+        offer = realm_product_attributes.delete( :offer )
+        period_attributes = { expires_at: ( Time.now.utc + 1.send( offer.period ) ) }
+        realm_product = RealmProduct.find_or_initialize_by( realm_product_attributes )
+        realm_product.assign_attributes( realm_product_attributes.merge( period_attributes ) )
+
+        if realm_product.save
+          realm_product
+        end
+
+        if subscriber.realm_product.nil?
+          subscriber.realm_product = realm_product
+        end
+
+        if subscriber.save
+          subscriber
+        end
+      end
+
+
+      def self.update_subscriber( subscriber, attributes, local_product )
+        if subscriber.provider_id.nil?
+          subscriber.provider_id = attributes[ :provider_id ]
+        end
+
+        subscriber.update( "#{ Adapter.local_product_name }_id": local_product.id )
+        subscriber.save
+      end
+
+      private_class_method :existing_local_product, :create_stripe_subscriber,
         :create_paypal_subscriber, :process_successful_subscription,
         :update_customer_product, :update_subscriber
     end
