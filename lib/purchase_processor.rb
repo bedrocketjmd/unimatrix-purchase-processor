@@ -29,3 +29,9 @@ require 'purchase_processor/orchestrator/transactions/purchase_cancellation_tran
 require 'purchase_processor/orchestrator/transactions/purchase_transaction_orchestrator'
 require 'purchase_processor/orchestrator/transactions/refund_transaction_orchestrator'
 require 'purchase_processor/orchestrator/payments_subscriptions/payments_subscription_orchestrator'
+
+# Orchestrator Responses
+require 'purchase_processor/orchestrator/orchestrator_error'
+require 'purchase_processor/orchestrator/orchestrator_redirect'
+require 'purchase_processor/orchestrator/orchestrator_response'
+require 'purchase_processor/orchestrator/orchestrator_success'
