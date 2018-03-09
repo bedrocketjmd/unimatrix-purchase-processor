@@ -4,11 +4,14 @@ module Unimatrix
       def self.create_transaction( provider, attributes, request_attributes = nil )
         orchestrator_response = nil
 
-        if attributes[ :realm_id ].present? && attributes[ :customer_product_id ].present? && attributes[ :customer_id ].present?
-          realm = Realm.find_by( id: attributes[ :realm_id ] )
-          customer_product = CustomerProduct.find_by( id: attributes[ :customer_product_id ] )
+        local_product_id = "#{ Adapter.local_product_name }_id".to_sym
 
-          if customer_product.present? && customer_product.customer_id.to_i == attributes[ :customer_id ].to_i
+        if attributes[ :realm_id ].present? && attributes[ local_product_id ].present? && attributes[ :customer_id ].present?
+          realm = Realm.find_by( id: attributes[ :realm_id ] )
+
+          local_product = find_local_product( attributes[ local_product_id ] )
+
+          if local_product.present? && local_product.customer_id.to_i == attributes[ :customer_id ].to_i
             if attributes[ :payments_subscription_id ].present?
               at_period_end = attributes[ :at_period_end ]
 
@@ -19,7 +22,7 @@ module Unimatrix
                   adapter = "Unimatrix::PurchaseProcessor::#{ provider }Adapter".constantize.new
                   adapter.refresh_api_key( realm ) if adapter.respond_to?( :refresh_api_key )
 
-                  create_canceled_transaction( adapter, customer, attributes, at_period_end, customer_product )
+                  create_canceled_transaction( adapter, customer, attributes, at_period_end, local_product )
                 else
                   # could not find customer with that id
                   orchestrator_response = format_error( NotFoundError, 'A customer could not be found with the given id.' )
@@ -41,7 +44,7 @@ module Unimatrix
         return orchestrator_response
       end
 
-      def self.create_canceled_transaction( adapter, customer, attributes, at_period_end, customer_product )
+      def self.create_canceled_transaction( adapter, customer, attributes, at_period_end, local_product )
         begin
           if adapter.customer_valid?( customer )
             payments_subscription = PaymentsSubscription.find(
@@ -77,6 +80,15 @@ module Unimatrix
           end
         rescue Stripe::StripeError => error
           orchestrator_response = format_error( BadRequestError, "#{ error.message }" )
+        end
+      end
+
+      def find_local_product( local_product_id )
+        type_name = Adapter.local_product_name
+        if type_name == 'customer_product'
+          CustomerProduct.find_by( id: local_product_id )
+        elsif type_name == 'realm_product'
+          RealmProduct.find_by( id: local_product_id )
         end
       end
     end
