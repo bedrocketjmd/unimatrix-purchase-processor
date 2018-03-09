@@ -31,7 +31,7 @@ require 'purchase_processor/orchestrator/transactions/refund_transaction_orchest
 require 'purchase_processor/orchestrator/payments_subscriptions/payments_subscription_orchestrator'
 
 # Orchestrator Responses
-require 'purchase_processor/orchestrator/orchestrator_error'
-require 'purchase_processor/orchestrator/orchestrator_redirect'
-require 'purchase_processor/orchestrator/orchestrator_response'
-require 'purchase_processor/orchestrator/orchestrator_success'
+require 'purchase_processor/orchestrator/responses/orchestrator_response'
+require 'purchase_processor/orchestrator/responses/orchestrator_error'
+require 'purchase_processor/orchestrator/responses/orchestrator_redirect'
+require 'purchase_processor/orchestrator/responses/orchestrator_success'
