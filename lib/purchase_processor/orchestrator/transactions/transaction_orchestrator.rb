@@ -3,7 +3,8 @@ module Unimatrix
     class TransactionOrchestrator
       def self.create_transaction( provider, attributes, request_attributes = nil )
         name = self.name
-        name.slice!( 'Orchestrator' )
+        name = name.slice!( /(?<=Unimatrix::PurchaseProcessor::)(.*)(?=Orchestrator)/ )
+
         transaction = name.constantize.create( attributes )
 
         if transaction.save
