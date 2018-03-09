@@ -54,7 +54,8 @@ module Unimatrix
 
             if refund_transaction.save
               if revoke_access
-                reference_transaction.customer_product.update( expires_at: Time.now )
+                local_product = Adapter.local_product( reference_transaction )
+                local_product.update( expires_at: Time.now )
               end
 
               unless refund_transaction.type === 'FreeRefundTransaction'
