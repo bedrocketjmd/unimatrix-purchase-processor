@@ -233,7 +233,7 @@ module Unimatrix
         subscriber.save
       end
 
-      private_class_method :existing_local_product, :free_subscription, :create_stripe_subscriber,
+      private_class_method :existing_local_product, :create_stripe_subscriber,
         :create_paypal_subscriber, :process_successful_subscription,
         :update_customer_product, :update_subscriber
     end
