@@ -2,7 +2,8 @@ module Unimatrix
   module PurchaseProcessor
     class PurchaseTransactionOrchestrator < TransactionOrchestrator
       def self.create_transaction( provider, attributes, request_attributes = nil )
-        realm                    = Realm.find_by( id: attributes[ :realm_id ] )
+        purchasing_realm         = Realm.find_by( uuid: ENV[ 'MERCHANT_PURCHASING_REALM' ] ) || nil
+        realm                    = Realm.find_by( id: attributes[ :realm_id ] ) || nil
         offer                    = Offer.find_by( id: attributes[ :offer_id ] )
         product                  = Product.find_by( id: attributes[ :product_id ] )
         customer                 = Customer.find_by( id: attributes[ :customer_id ] )
@@ -21,7 +22,7 @@ module Unimatrix
           # For Stripe
           merge_tokens( attributes )
 
-          unless subscription_attributes.blank? && existing_customer_product( customer, product ).present?
+          unless subscription_attributes.blank? && existing_local_product( customer, product ).present? && orchestrator_response.is_a?( OrchestratorError )
             # If this is a subscription, allow multiple charges. If it's not, don't allow them.
             coupon, discount = apply_coupons( coupon_code, offer )
 
@@ -57,9 +58,7 @@ module Unimatrix
                 adapter.refresh_api_key( realm ) if adapter.respond_to?( :refresh_api_key )
 
                 if adapter.customer_valid?( customer ) && !orchestrator_response.is_a?( OrchestratorError )
-                  # calculated_taxes = tax_helper( realm, offer, customer, discount )
-
-                  tax_helper = TaxHelper.new( realm: realm, offer: offer, customer: customer, discount: discount )
+                  tax_helper = TaxHelper.new( realm: purchasing_realm || realm, offer: offer, customer: customer, discount: discount )
 
                   transaction_attributes[ :tax_percent ] = tax_helper.tax_percentage
                   transaction_attributes[ :tax ] = tax_helper.total_tax
@@ -110,11 +109,15 @@ module Unimatrix
 
       #----------------------------------------------------------------------------
 
-      def self.existing_customer_product( customer, product )
-        CustomerProduct.where(
-          customer_id: customer.id,
-          product_id: product.id
-        ).active
+      def self.existing_local_product( customer, product )
+        if Adapter.local_product_name == 'customer_product'
+          CustomerProduct.where(
+            customer_id: customer.id,
+            product_id: product.id
+          ).present?
+        else
+          false
+        end
       end
 
       def self.process_successful_charge( charge, transaction, transaction_attributes, redirect_url )
@@ -135,11 +138,44 @@ module Unimatrix
         end
       end
 
-      def self.complete_transaction( transaction, attributes )
-        customer_product_attributes = attributes.slice( :provider, :realm, :customer, :offer, :product )
+      def self.create_payments_subscription( transaction, attributes )
+        payments_subscription_attributes = attributes.slice( :provider, :offer, :customer )
+        payments_subscription = PaymentsSubscription.find_or_initialize_by( payments_subscription_attributes.merge( { device_platform: transaction.device_platform, provider_id: transaction.provider_id } ) )
+        payments_subscription.save
 
-        period_attributes = { expires_at: nil }
+        payments_subscription
+      end
 
+      def self.generate_realm( account_name=nil )
+        realm = Realm.new
+
+        realm.save
+
+        realm
+      end
+
+      def self.create_realm_product( realm_product_attributes, period_attributes )
+        offer = realm_product_attributes.delete( :offer )
+
+        if offer.period.present?
+          period_attributes = { expires_at: ( Time.now.utc + 1.send( offer.period ) ) }
+        end
+
+        realm_product = RealmProduct.find_or_initialize_by( realm_product_attributes )
+
+        realm_product.assign_attributes( period_attributes )
+
+        if realm_product.realm_id.nil?
+          realm = generate_realm
+          realm_product.realm = realm
+        end
+
+        if realm_product.save
+          realm_product
+        end
+      end
+
+      def self.create_customer_product( customer_product_attributes, period_attributes )
         offer = customer_product_attributes[ :offer ]
 
         if offer.period.present?
@@ -150,15 +186,29 @@ module Unimatrix
 
         customer_product.assign_attributes( customer_product_attributes.merge( period_attributes ) )
 
-        customer_product.save
+        if customer_product.save
+          customer_product
+        end
+      end
+
+      def self.complete_transaction( transaction, attributes )
+        period_attributes = { expires_at: nil }
+
+        if Adapter.local_product_name == 'realm_product'
+          payments_subscription = create_payments_subscription( transaction, attributes )
+          realm_product_attributes = { provider: attributes[ :provider ], payments_subscription_id: payments_subscription.id, offer: attributes[ :offer ] }
+          local_product = create_realm_product( realm_product_attributes, period_attributes )
+        else
+          customer_product_attributes = attributes.slice( :provider, :realm, :customer, :offer, :product )
+          local_product = create_customer_product( customer_product_attributes, period_attributes )
+        end
 
         if transaction
-          transaction.customer_product = customer_product
+          transaction.update( "#{ Adapter.local_product_name }_id": local_product.id )
           transaction.save
 
           if transaction.valid?
-            customer_product.successful_payments = 1
-            customer_product.save
+            local_product.save
 
             TransactionMailer.purchase_confirmation(
               transaction,
@@ -174,7 +224,7 @@ module Unimatrix
         return transaction
       end
 
-      private_class_method :existing_customer_product, :process_successful_charge
+      private_class_method :existing_local_product, :process_successful_charge
     end
   end
 end
