@@ -22,7 +22,7 @@ module Unimatrix
           # For Stripe
           merge_tokens( attributes )
 
-          unless subscription_attributes.blank? && existing_local_product( customer, product ).present? && orchestrator_response.is_a?( OrchestratorError )
+          unless subscription_attributes.blank? && existing_local_product( customer, product ).present?
             # If this is a subscription, allow multiple charges. If it's not, don't allow them.
             coupon, discount = apply_coupons( coupon_code, offer )
 
