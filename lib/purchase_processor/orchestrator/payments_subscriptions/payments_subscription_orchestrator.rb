@@ -125,8 +125,7 @@ module Unimatrix
         payments_subscription_attributes = {
           offer: offer,
           tax: total_tax,
-          discount: discount,
-          account_name: account_name
+          discount: discount
         }
 
         subscriber = adapter.create_agreement(
