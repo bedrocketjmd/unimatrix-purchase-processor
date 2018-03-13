@@ -15,6 +15,7 @@ module Unimatrix
         request_attributes                = request_attributes || nil
         provider                          = attributes[ :provider ]
         device_platform                   = attributes[ :device_platform ]
+        account_name                      = attributes[ :account_name ] || nil
 
         orchestrator_response = nil
 
@@ -63,7 +64,7 @@ module Unimatrix
                         subscriber = stripe_customer
                       end
                     elsif provider == "Paypal"
-                      subscriber, redirect_url = create_paypal_subscriber( adapter, offer, tax_helper.total_tax, request_attributes, discount )
+                      subscriber, redirect_url = create_paypal_subscriber( adapter, offer, tax_helper.total_tax, request_attributes, discount, account_name )
                     end
 
                     if !subscriber.is_a?( Stripe::CardError ) && adapter.subscription_successful?( subscriber ) && !subscriber.is_a?( OrchestratorError )
@@ -121,7 +122,7 @@ module Unimatrix
         stripe_customer.subscriptions.create( params )
       end
 
-      def self.create_paypal_subscriber( adapter, offer, total_tax, request_attributes, discount )
+      def self.create_paypal_subscriber( adapter, offer, total_tax, request_attributes, discount, account_name )
         payments_subscription_attributes = {
           offer: offer,
           tax: total_tax,
@@ -156,7 +157,7 @@ module Unimatrix
       def self.complete_subscription( subscriber, attributes )
         local_product = nil
         if Adapter.local_product_name == 'realm_product'
-          realm = find_or_create_realm( attributes[ :realm ], attributes[ :account_name ] )
+          realm = find_or_create_realm( attributes[ :realm ], account_name )
           local_product = update_realm_product( subscriber, realm, attributes )
         else
           local_product = update_customer_product( subscriber, attributes )
