@@ -35,8 +35,8 @@ module Unimatrix
           result = Stripe::Customer.create( attributes )
         end
 
-        customer_resources = customer.resources
-        customer_resources.merge!( { stripe_customer_uuid: result.id } )
+        customer_resources = customer.resources ? customer.resources : {}
+        customer_resources.merge( stripe_customer_uuid: result.id )
 
         customer.update( resources: customer_resources )
         result
