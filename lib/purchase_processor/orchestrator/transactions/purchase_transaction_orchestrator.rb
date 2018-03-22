@@ -35,7 +35,7 @@ module Unimatrix
             transaction_attributes[ :coupon ] = coupon if coupon
 
             unless orchestrator_response.is_a?( OrchestratorError )
-              if offer.price == 0.0 || ( coupon.present? && offer.price - discount <= 0 )
+              if offer.price.to_i == 0.0 || ( coupon.present? && offer.price.to_i - discount.to_i <= 0 )
                 # Free offer or 100% discount
 
                 adapter = FreeAdapter.new
@@ -49,7 +49,7 @@ module Unimatrix
                 else
                   orchestrator_response = format_error( BadRequestError, transaction.errors.messages )
                 end
-              elsif offer.price < 0.5
+              elsif offer.price.to_i < 0.5
                 # Charge amount too small
                 orchestrator_response = format_error( BadRequestError, 'The charge amount must be greater than or equal to $0.50.' )
               else
@@ -72,7 +72,7 @@ module Unimatrix
 
                     charge, redirect_url = adapter.create_charge(
                       customer:           customer,
-                      amount:             ( ( offer.price - discount ) + tax_helper.total_tax ).to_f,
+                      amount:             ( ( offer.price.to_i - discount.to_i ) + tax_helper.total_tax ).to_f,
                       offer:              offer,
                       currency:           offer.currency,
                       metadata:           metadata.merge( attributes ),
@@ -114,7 +114,7 @@ module Unimatrix
           CustomerProduct.where(
             customer_id: customer.id,
             product_id: product.id
-          ).present?
+          ).results.to_a.length > 0
         else
           false
         end
