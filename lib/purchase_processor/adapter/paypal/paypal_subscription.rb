@@ -124,10 +124,11 @@ module Unimatrix
         payment_definitions = []
 
         charge_cycle = calculate_charge_cycle( offer )
+        plan_uuid = SecureRandom.hex
 
         regular_payment =
           {
-            name: "#{ offer.code_name }-#{ offer.uuid }",
+            name: "#{ offer.code_name }-#{ plan_uuid }",
             type: "REGULAR",
             frequency_interval: 1,
             frequency: offer.period,
@@ -153,7 +154,7 @@ module Unimatrix
           trial_period_cycles = calculate_trial_period( offer.trial_period )
 
           trial_payment = {
-            name: "#{ offer.code_name }-#{ offer.uuid }-trial",
+            name: "#{ offer.code_name }-#{ plan_uuid }-trial",
             type: "TRIAL",
             frequency_interval: 1,
             frequency: trial_period_cycles[ :frequency ],
