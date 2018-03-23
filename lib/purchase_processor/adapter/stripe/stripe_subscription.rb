@@ -79,20 +79,29 @@ module Unimatrix
           else
             offer.description.truncate( 22 )
           end
-        Stripe::Plan.create(
-          amount: ( offer.price * offer.currency_exponent ).to_i,
-          interval: offer.period,
-          interval_count: 1,
-          trial_period_days: trial_period,
-          name: offer.name,
-          currency: offer.currency,
-          id: "#{ offer.code_name }-#{ offer.uuid }",
-          statement_descriptor:  offer_description,
-          metadata: {
-            realm_uuid: realm.uuid,
-            offer_id: offer.id
-          }
-        )
+
+        plan_uuid = SecureRandom.hex
+
+        @stripe_plan ||=
+          begin
+            Stripe::Plan.create(
+              amount: ( offer.price.to_f * offer.currency_exponent ).to_i,
+              interval: offer.period,
+              interval_count: 1,
+              trial_period_days: trial_period,
+              name: offer.name,
+              currency: offer.currency,
+              id: "#{ offer.code_name }-#{ plan_uuid }",
+              statement_descriptor:  offer_description,
+              metadata: {
+                realm_uuid: realm.uuid,
+                offer_id: offer.id
+              }
+            )
+          rescue Stripe::InvalidRequestError => error
+            error
+          end
+        @stripe_plan
       end
 
       def subscription_from_event( event )
