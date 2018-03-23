@@ -31,12 +31,12 @@ module Unimatrix
               orchestrator_response = coupon
             end
 
-            payments_subscription_attributes = attributes_block( provider, realm, customer, offer, product, offer.price, discount, offer.currency,  device_platform )
+            payments_subscription_attributes = attributes_block( provider, realm, customer, offer, product, offer.price.to_f, discount, offer.currency,  device_platform )
 
             payments_subscription_attributes[ :coupon ] = coupon if coupon
 
             unless orchestrator_response.is_a?( OrchestratorError )
-              if offer.price < 0.5
+              if offer.price.to_f < 0.5
                 # Charge amount too small
                 orchestrator_response =  format_error( BadRequestError, 'The subscription amount must be greater than or equal to $0.50.' )
               else
@@ -100,7 +100,7 @@ module Unimatrix
           CustomerProduct.where(
             customer_id: customer.id,
             product_id: product.id
-          ).present?
+          ).results.to_a.present?
         else
           false
         end
@@ -181,18 +181,24 @@ module Unimatrix
         period_attributes = { expires_at: nil }
         offer = customer_product_attributes[ :offer ]
         period_attributes = { expires_at: ( Time.now.utc + 1.send( offer.period ) ) }
-        customer_product = CustomerProduct.find_or_initialize_by( customer_product_attributes )
+        customer_product = CustomerProduct.new( customer_product_attributes )
         customer_product.assign_attributes( customer_product_attributes.merge( period_attributes ) )
         if customer_product.save
           customer_product
         end
       end
 
-      def self.update_subscriber( subscriber, attributes, customer_product )
+      def self.update_subscriber( subscriber, attributes, local_product )
         if subscriber.provider_id.nil?
           subscriber.provider_id = attributes[ :provider_id ]
         end
-        subscriber.customer_product = customer_product
+
+        if Adapter.local_product_name == 'customer_product'
+          subscriber.attributes.merge!( :customer_product_uuid => local_product.uuid )
+        else
+          subscriber.update( "#{ Adapter.local_product_name }_id": local_product.id )
+        end
+
         subscriber.save
       end
 
@@ -222,16 +228,6 @@ module Unimatrix
         if subscriber.save
           subscriber
         end
-      end
-
-
-      def self.update_subscriber( subscriber, attributes, local_product )
-        if subscriber.provider_id.nil?
-          subscriber.provider_id = attributes[ :provider_id ]
-        end
-
-        subscriber.update( "#{ Adapter.local_product_name }_id": local_product.id )
-        subscriber.save
       end
 
       private_class_method :existing_local_product, :create_stripe_subscriber,
