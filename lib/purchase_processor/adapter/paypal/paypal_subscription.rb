@@ -75,21 +75,11 @@ module Unimatrix
             plan
           else
             #this means we couldn't activate the plans
-            error = ErrorHash.convert( plan.error )
-            return OrchestratorError.new(
-              MalformedParameterError,
-              "There was an error creating the PayPal Plan, please try again later." +
-              error.message
-            )
+            return ErrorHash.convert( plan.error )
           end
         else
           #this means we couldn't create the plan
-          error = ErrorHash.convert( plan.error )
-          return OrchestratorError.new(
-            MalformedParameterError,
-            "There was an error creating the PayPal Plan, please try again later." +
-            error.message
-          )
+          return ErrorHash.convert( plan.error )
         end
       end
 
