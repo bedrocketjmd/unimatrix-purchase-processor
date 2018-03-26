@@ -187,7 +187,7 @@ module Unimatrix
 
         if payments_subscription_attributes[ :discount ]
           agreement_start_date = ( Time.now + 1.send( payment_definitions.frequency.downcase ) + 1.minutes ).iso8601
-          setup_fee = offer.price - payments_subscription_attributes[ :discount ]
+          setup_fee = offer.price.to_f - payments_subscription_attributes[ :discount ]
         else
           agreement_start_date = ( Time.now + 1.minutes ).iso8601
           setup_fee = 0
