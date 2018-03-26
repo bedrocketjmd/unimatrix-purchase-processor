@@ -59,7 +59,18 @@ module Unimatrix
       end
 
       def new_subscription( customer, device_platform, offer )
-        PaymentsSubscription.new( customer: customer, provider: 'Stripe', device_platform: device_platform, offer: offer )
+        if Adapter.local_product_name == 'customer_product'
+          PaymentsSubscription.new(
+            customer_id: customer.id,
+            customer_uuid: customer.uuid,
+            provider: 'Stripe',
+            device_platform: device_platform,
+            offer_id: offer.id,
+            offer_uuid: offer.uuid
+          )
+        else
+          PaymentsSubscription.new( customer: customer, provider: 'Stripe', device_platform: device_platform, offer: offer )
+        end
       end
 
       def create_plan( offer, realm )

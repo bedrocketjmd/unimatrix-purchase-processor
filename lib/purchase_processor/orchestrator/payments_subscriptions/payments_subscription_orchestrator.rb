@@ -194,12 +194,23 @@ module Unimatrix
         end
 
         if Adapter.local_product_name == 'customer_product'
-          subscriber.attributes.merge!( :customer_product_uuid => local_product.uuid )
+          subscriber.attributes.merge!(
+            :customer_product_uuid => local_product.uuid,
+            :customer_product_id => local_product.id
+          )
         else
           subscriber.update( "#{ Adapter.local_product_name }_id": local_product.id )
         end
 
-        subscriber.save
+        unless subscriber.state == 'active'
+          subscriber.state = 'active'
+        end
+
+        if subscriber.valid?
+          subscriber.save
+        end
+
+        subscriber
       end
 
       def self.find_or_create_realm( realm, account_name )

@@ -36,8 +36,8 @@ module Unimatrix
 
 
         customer_resources = customer.resources ? customer.resources : {}
-        customer.resources[ 'stripe_customer_uuid' ] = result.id
-
+        customer_resources[ 'stripe_customer_uuid' ] = result.id
+        customer.resources = customer_resources
         customer.save
         result
       end
