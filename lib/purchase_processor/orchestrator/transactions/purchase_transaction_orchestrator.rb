@@ -3,10 +3,10 @@ module Unimatrix
     class PurchaseTransactionOrchestrator < TransactionOrchestrator
       def self.create_transaction( provider, attributes, request_attributes = nil )
         purchasing_realm         = Realm.find_by( uuid: ENV[ 'MERCHANT_PURCHASING_REALM' ] ) || nil
-        realm                    = Realm.find_by( id: attributes[ :realm_id ] ) || nil
-        offer                    = Offer.find_by( id: attributes[ :offer_id ] )
-        product                  = Product.find_by( id: attributes[ :product_id ] )
-        customer                 = Customer.find_by( id: attributes[ :customer_id ] )
+        realm                    = Realm.find_by( id: attributes[ :realm_id ].to_s ) || nil
+        offer                    = Offer.find_by( id: attributes[ :offer_id ].to_s )
+        product                  = Product.find_by( id: attributes[ :product_id ].to_s )
+        customer                 = Customer.find_by( id: attributes[ :customer_id ].to_s )
         subscription_attributes  = attributes.delete( :subscription_attributes ) || {}
         discount                 = 0.0
         coupon                   = nil
@@ -35,7 +35,7 @@ module Unimatrix
             transaction_attributes[ :coupon ] = coupon if coupon
 
             unless orchestrator_response.is_a?( OrchestratorError )
-              if offer.price.to_i == 0.0 || ( coupon.present? && offer.price.to_i - discount.to_i <= 0 )
+              if offer.price.to_f == 0.0 || ( coupon.present? && offer.price.to_f - discount.to_f <= 0 )
                 # Free offer or 100% discount
 
                 adapter = FreeAdapter.new
@@ -49,7 +49,7 @@ module Unimatrix
                 else
                   orchestrator_response = format_error( BadRequestError, transaction.errors.messages )
                 end
-              elsif offer.price.to_i < 0.5
+              elsif offer.price.to_f < 0.5
                 # Charge amount too small
                 orchestrator_response = format_error( BadRequestError, 'The charge amount must be greater than or equal to $0.50.' )
               else
@@ -75,7 +75,7 @@ module Unimatrix
 
                     charge, redirect_url = adapter.create_charge(
                       customer:           customer,
-                      amount:             ( ( offer.price.to_i - discount.to_i ) + tax_helper.total_tax ).to_f,
+                      amount:             ( ( offer.price.to_f - discount.to_f ) + tax_helper.total_tax ).to_f,
                       offer:              offer,
                       currency:           offer.currency,
                       metadata:           metadata.merge( attributes ),

@@ -37,7 +37,8 @@ module Unimatrix
               refund_attributes[ :total ] =    partial_refund_ratio * reference_transaction.total * -1
             end
 
-            realm = Realm.find_by( id: attributes[ :realm_id ] )
+            realm = Realm.find_by( id: attributes.delete( :realm_id ) )
+            attributes[ :realm_uuid ] = realm.uuid
 
             adapter = "Unimatrix::PurchaseProcessor::#{ provider }Adapter".constantize.new
             adapter.refresh_api_key( realm ) if adapter.respond_to?( :refresh_api_key )
