@@ -51,15 +51,17 @@ module Unimatrix
               refund_attributes = refund_attributes.except( :token)
             end
 
+            refund_attributes = extract_attribute_ids( refund_attributes )
             refund_transaction = adapter.new_refund_transaction( reference_transaction, refund_attributes )
 
             if refund_transaction.save
+              # what is the error thats getting returned when we save this
               if revoke_access
                 local_product = Adapter.local_product( reference_transaction )
                 local_product.update( expires_at: Time.now )
               end
 
-              unless refund_transaction.type === 'FreeRefundTransaction'
+              unless refund_transaction.type_name === 'free_refund_transaction'
                 TransactionMailer.refund_processed(
                   refund_transaction,
                   'Your refund has been processed'
@@ -80,6 +82,18 @@ module Unimatrix
         end
         return orchestrator_response
       end
+
+      #----------------------------------------------------------------------------
+
+      def self.extract_attribute_ids( attributes )
+        attributes[ :customer_uuid ] = Customer.find( attributes[ :customer_id ] ).uuid
+        attributes[ :offer_uuid ] = Offer.find( attributes[ :offer_id ] ).uuid
+        attributes[ :product_uuid ] = Product.find( attributes[ :product_id ] ).uuid
+        attributes[ :transaction_uuid ] = Transaction.find( attributes[ :transaction_id ] ).uuid
+
+        attributes
+      end
+
     end
   end
 end

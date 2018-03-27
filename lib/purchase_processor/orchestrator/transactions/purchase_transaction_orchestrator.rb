@@ -226,7 +226,7 @@ module Unimatrix
         end
 
         if transaction
-          transaction.update( "#{ Adapter.local_product_name }_id": local_product.id )
+          transaction.update( { "#{ Adapter.local_product_name }_id": local_product.id, "#{ Adapter.local_product_name }_uuid": local_product.uuid } )
           transaction.save
 
           if transaction.valid?
