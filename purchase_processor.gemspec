@@ -24,6 +24,6 @@ Gem::Specification.new do | spec |
   spec.add_runtime_dependency 'stripe', '>= 0'
   spec.add_runtime_dependency 'paypal-sdk-rest', '>= 0'
   spec.add_runtime_dependency 'avatax', '>= 0'
-  spec.add_runtime_dependency 'google_currency', '>= 0'
   spec.add_runtime_dependency 'money', '>= 0'
+  spec.add_runtime_dependency 'money-open-exchange-rates', '~> 1.0.2'
 end
