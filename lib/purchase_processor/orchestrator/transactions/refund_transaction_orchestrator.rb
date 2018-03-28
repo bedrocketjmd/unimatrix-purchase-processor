@@ -21,20 +21,20 @@ module Unimatrix
           if reference_transaction.refundable?
             refund_attributes = attributes
 
-            if refund_attributes[ :subtotal ] == reference_transaction.subtotal * -1
+            if refund_attributes[ :subtotal ] == reference_transaction.subtotal.to_f * -1
               # Full refund
 
-              refund_attributes[ :tax ] =          reference_transaction.tax * -1
-              refund_attributes[ :total ] =        reference_transaction.total * -1
+              refund_attributes[ :tax ] =          reference_transaction.tax.to_f * -1
+              refund_attributes[ :total ] =        reference_transaction.total.to_f * -1
             else
               # Partial refund
 
               # partial_refund_ratio will be a positive number
-              partial_refund_ratio = refund_attributes[ :subtotal ] / reference_transaction.subtotal * -1
+              partial_refund_ratio = refund_attributes[ :subtotal ] / reference_transaction.subtotal.to_f * -1
 
-              refund_attributes[ :tax ] =      partial_refund_ratio * reference_transaction.tax * -1
+              refund_attributes[ :tax ] =      partial_refund_ratio * reference_transaction.tax.to_f* -1
 
-              refund_attributes[ :total ] =    partial_refund_ratio * reference_transaction.total * -1
+              refund_attributes[ :total ] =    partial_refund_ratio * reference_transaction.total.to_f * -1
             end
 
             realm = Realm.find_by( id: attributes.delete( :realm_id ) )
