@@ -45,7 +45,8 @@ module Unimatrix
 
                 complete_transaction( transaction, transaction_attributes )
 
-                if transaction.created_at.present?
+                # below is a substitution for transaction.persisted?
+                if Transaction.find_by( uuid: transaction.uuid ).present?
                   orchestrator_response = OrchestratorSuccess.new( transaction )
                 else
                   orchestrator_response = format_error( BadRequestError, transaction.errors.messages )
