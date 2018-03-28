@@ -22,7 +22,6 @@ module Unimatrix
       end
 
       field :application_name, default: nil
-      field :oxr_app_id, default: nil
     end
   end
 end
