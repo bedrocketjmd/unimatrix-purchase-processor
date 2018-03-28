@@ -40,11 +40,12 @@ module Unimatrix
 
                 adapter = FreeAdapter.new
 
+                transaction_attributes = extract_attribute_ids( transaction_attributes )
                 transaction = adapter.new_purchase_transaction( transaction_attributes )
 
                 complete_transaction( transaction, transaction_attributes )
 
-                if transaction.persisted?
+                if transaction.created_at.present?
                   orchestrator_response = OrchestratorSuccess.new( transaction )
                 else
                   orchestrator_response = format_error( BadRequestError, transaction.errors.messages )
