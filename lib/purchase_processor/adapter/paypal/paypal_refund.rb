@@ -28,10 +28,10 @@ module Unimatrix
                 PaypalAdapter.approximate_missing_refund_values( reference_transaction, refund_attributes )
               )
 
-              if refund_attributes[ :total ] == reference_transaction.total * -1
+              if refund_attributes[ :total ] == reference_transaction.total.to_f * -1
                 # Full refund
 
-                refund_attributes[ :processing_fee_usd ] = reference_transaction.processing_fee_usd * -1
+                refund_attributes[ :processing_fee_usd ] = reference_transaction.processing_fee_usd.to_f * -1
               else
                 # Partial refund
 
@@ -83,9 +83,9 @@ module Unimatrix
       def international_refund_attributes( refund_attributes, reference_transaction )
         # Processing fee is reversed because that's how it's returned from PayPal
         # Don't do ratio calculation unless necessary because it's less accurate
-        if refund_attributes[ :total ] == reference_transaction.total * -1
+        if refund_attributes[ :total ] == reference_transaction.total.to_f * -1
           # Full refund
-          refund_attributes[ :processing_fee ] =  reference_transaction.processing_fee * -1
+          refund_attributes[ :processing_fee ] =  reference_transaction.processing_fee.to_f * -1
         else
           # Partial refund
           refund_attributes[ :processing_fee ] =  exchange_by_ratio(
@@ -133,23 +133,23 @@ module Unimatrix
       end
 
       def international_missing_refund_values( attributes, reference_transaction )
-        if attributes[ :subtotal ] == reference_transaction.subtotal * -1
+        if attributes[ :subtotal ] == reference_transaction.subtotal.to_f * -1
           # Full refund
 
-          attributes[ :subtotal_usd ] = reference_transaction.subtotal_usd * -1
-          attributes[ :discount_usd ] = reference_transaction.discount_usd * -1
-          attributes[ :tax_usd ] =      reference_transaction.tax_usd * -1
-          attributes[ :total_usd ] =    reference_transaction.total_usd * -1
+          attributes[ :subtotal_usd ] = reference_transaction.subtotal_usd.to_f * -1
+          attributes[ :discount_usd ] = reference_transaction.discount_usd.to_f * -1
+          attributes[ :tax_usd ] =      reference_transaction.tax_usd.to_f * -1
+          attributes[ :total_usd ] =    reference_transaction.total_usd.to_f * -1
         else
           # Partial refund
 
           # partial_refund_ratio will be a positive number
-          partial_refund_ratio = attributes[ :subtotal ] / reference_transaction.subtotal * -1
+          partial_refund_ratio = attributes[ :subtotal ] / reference_transaction.subtotal.to_f * -1
 
-          attributes[ :subtotal_usd ] = partial_refund_ratio * reference_transaction.subtotal_usd * -1
-          attributes[ :discount_usd ] = partial_refund_ratio * reference_transaction.discount_usd * -1
-          attributes[ :tax_usd ] =      partial_refund_ratio * reference_transaction.tax_usd * -1
-          attributes[ :total_usd ] =    partial_refund_ratio * reference_transaction.total_usd * -1
+          attributes[ :subtotal_usd ] = partial_refund_ratio * reference_transaction.subtotal_usd.to_f * -1
+          attributes[ :discount_usd ] = partial_refund_ratio * reference_transaction.discount_usd.to_f * -1
+          attributes[ :tax_usd ] =      partial_refund_ratio * reference_transaction.tax_usd.to_f * -1
+          attributes[ :total_usd ] =    partial_refund_ratio * reference_transaction.total_usd.to_f * -1
         end
       end
     end
