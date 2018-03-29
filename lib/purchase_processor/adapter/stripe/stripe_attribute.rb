@@ -66,6 +66,17 @@ module Unimatrix
             total: object.total.to_f
           }
 
+          if Adapter.local_product_name == 'customer_product'
+            attributes.merge!(
+              realm_uuid: Realm.find( realm_id ).uuid,
+              offer_uuid: Offer.find( attribtes[ :offer_id ] ).uuid,
+              product_uuid: Product.find( attributes[ :product_id ] ).uuid,
+              customer_uuid: Customer.find( attributes[ :customer_id ] ).uuid,
+            )
+
+            attributes.delete( :realm_id )
+          end
+
           attributes
         rescue
           {}
