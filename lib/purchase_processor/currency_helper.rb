@@ -1,12 +1,3 @@
-require 'money/bank/google_currency'
-
-# Set the seconds after than the current rates are automatically expired
-# By default, they never expire
-Money::Bank::GoogleCurrency.ttl_in_seconds = 86400
-
-# Set default bank to instance of GoogleCurrency
-Money.default_bank = Money::Bank::GoogleCurrency.new
-
 module CurrencyHelper
   extend ActiveSupport::Concern
 

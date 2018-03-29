@@ -5,7 +5,7 @@ $LOAD_PATH.unshift( lib )     unless $LOAD_PATH.include?( lib )
 
 Gem::Specification.new do | spec |
   spec.name          = 'purchase_processor'
-  spec.version       = '1.1.0'
+  spec.version       = '1.2.0'
   spec.authors       = [ 'Stefan Hartmann' ]
   spec.email         = [ 'stefanhartmann@sportsrocket.com' ]
   spec.summary       = %q{ Library of Stripe + Paypal related purchase processing methods. }
@@ -24,6 +24,6 @@ Gem::Specification.new do | spec |
   spec.add_runtime_dependency 'stripe', '>= 0'
   spec.add_runtime_dependency 'paypal-sdk-rest', '>= 0'
   spec.add_runtime_dependency 'avatax', '>= 0'
-  spec.add_runtime_dependency 'google_currency', '>= 0'
   spec.add_runtime_dependency 'money', '>= 0'
+  spec.add_runtime_dependency 'money-open-exchange-rates', '~> 1.0.2'
 end
