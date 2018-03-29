@@ -21,6 +21,10 @@ module Unimatrix
 
         attributes[ :payments_subscription_id ] = payments_subscription.id
 
+        if Adapter.local_product_name == 'customer_product'
+          attributes[ :payments_subscription_uuid ] = payments_subscription.uuid
+        end
+
         attributes[ "#{ Adapter.local_product_name }_id".to_sym ] = Adapter.local_product( payments_subscription ).id
 
         if [ 'sale', 'agreement', 'dispute' ].include? object_name
