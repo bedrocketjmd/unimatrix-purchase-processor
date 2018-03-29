@@ -93,17 +93,20 @@ module Unimatrix
                                                transaction.processing_fee_usd
             end
 
+            transaction.state = 'complete'
             transaction.type_name = 'paypal_purchase_transaction'
             transaction.save
 
             [ true, "#{ redirect_uri }/success?provider=paypal&status=success&transaction_id=#{ transaction.id }" ]
           else
+            transaction.state = 'failed'
             transaction.type_name = 'paypal_failed_purchase_transaction'
             transaction.save
 
             [ false, "#{ redirect_uri }?provider=paypal&status=error&message=#{ @payment.error.inspect }" ]
           end
         else
+          transaction.state = 'failed'
           transaction.type_name = 'paypal_failed_purchase_transaction'
           transaction.save
 

@@ -17,27 +17,27 @@ module Unimatrix
 
         when 'PAYMENT.SALE.COMPLETED'
           if zero_balance?( provider_subscription )
-            PaypalPurchaseTransaction
+            PaypalPurchaseTransaction, 'complete'
           else
-            PaypalFailedPurchaseTransaction
+            PaypalPurchaseTransaction, 'failed'
           end
         when 'PAYMENT.SALE.DENIED'
-          PaypalFailedPurchaseTransaction
+          PaypalPurchaseTransaction, 'failed'
 
         when 'BILLING.SUBSCRIPTION.CANCELLED'
-          PaypalPurchaseCancellationTransaction
+          PaypalPurchaseCancellationTransaction, nil
 
         when 'CUSTOMER.DISPUTE.CREATED'
-          PaypalDisputeCreatedTransaction
+          PaypalDisputeCreatedTransaction, nil
 
         when 'CUSTOMER.DISPUTE.UPDATED'
-          PaypalDisputeUpdatedTransaction
+          PaypalDisputeUpdatedTransaction, nil
 
         when 'CUSTOMER.DISPUTE.RESOLVED'
-          PaypalDisputeClosedTransaction
+          PaypalDisputeClosedTransaction, nil
 
         else
-          nil
+          nil, nil
         end
       end
 
@@ -212,7 +212,7 @@ module Unimatrix
       end
 
       def new_purchase_transaction( attributes )
-        PaypalPendingPurchaseTransaction.new( attributes.merge( provider: 'Paypal' ) )
+        PaypalPurchaseTransaction.new( attributes.merge( { provider: 'Paypal', state: 'pending' } ) )
       end
 
       def create_plan( offer, request )
