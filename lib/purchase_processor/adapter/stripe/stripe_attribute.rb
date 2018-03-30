@@ -53,7 +53,7 @@ module Unimatrix
           if object.try( :realm_id )
             realm = Realm.find_by( id: object.realm_id.to_i )
             realm_id = realm.id
-            realm_uuid realm.uuid
+            realm_uuid = realm.uuid
           elsif object.try( :realm_uuid )
             realm = Realm.find_by( uuid: object.realm_uuid )
             realm_id = realm.id
@@ -77,7 +77,8 @@ module Unimatrix
 
           if Adapter.local_product_name == 'customer_product'
             attributes.merge!(
-              offer_uuid: Offer.find( attribtes[ :offer_id ] ).uuid,
+              realm_uuid: realm_uuid,
+              offer_uuid: Offer.find( attributes[ :offer_id ] ).uuid,
               product_uuid: Product.find( attributes[ :product_id ] ).uuid,
               customer_uuid: Customer.find( attributes[ :customer_id ] ).uuid,
             )

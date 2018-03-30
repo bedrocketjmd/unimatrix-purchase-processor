@@ -11,7 +11,7 @@ module Unimatrix
 
         object_name = event.resource_type.downcase
 
-        payments_subscription = PaymentsSubscription.where( provider_id: object[ 'billing_agreement_id' ] ).all.first
+        payments_subscription = PaymentsSubscription.find_by( provider_id: object[ 'billing_agreement_id' ] )
 
         attributes = {}
 
@@ -54,7 +54,7 @@ module Unimatrix
             customer_uuid: local_product.customer_uuid,
             customer_product_id: local_product.id,
             customer_product_uuid: local_product.uuid,
-            payments_subscription_id: payments_subscription.uuid
+            payments_subscription_uuid: payments_subscription.uuid
           )
         end
 

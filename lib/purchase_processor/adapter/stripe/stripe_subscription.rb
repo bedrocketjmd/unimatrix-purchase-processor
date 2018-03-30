@@ -5,31 +5,31 @@ module Unimatrix
         case event.type
 
         when 'invoice.payment_succeeded'
-          StripePurchaseTransaction
+          [ StripePurchaseTransaction, 'complete' ]
 
         when 'invoice.payment_failed'
-          StripeFailedPurchaseTransaction
+          [ StripePurchaseTransaction, 'failed' ]
 
         when 'customer.subscription.deleted'
-          StripePurchaseCancellationTransaction
+          [ StripePurchaseCancellationTransaction, nil ]
 
         when 'charge.dispute.created'
-          StripeDisputeCreatedTransaction
+          [ StripeDisputeCreatedTransaction, nil ]
 
         when 'charge.dispute.funds_reinstated'
-          StripeDisputeFundsReinstatedTransaction
+          [ StripeDisputeFundsReinstatedTransaction, nil ]
 
         when 'charge.dispute.funds_withdrawn'
-          StripeDisputeFundsWithdrawnTransaction
+          [ StripeDisputeFundsWithdrawnTransaction, nil ]
 
         when 'charge.dispute.updated'
-          StripeDisputeUpdatedTransaction
+          [ StripeDisputeUpdatedTransaction, nil ]
 
         when 'charge.dispute.closed'
-          StripeDisputeClosedTransaction
+          [ StripeDisputeClosedTransaction, nil ]
 
         else
-          nil
+          [ nil, nil ]
         end
       end
 
