@@ -51,9 +51,13 @@ module Unimatrix
       def attributes_from_metadata( object )
         begin
           if object.try( :realm_id )
-            realm_id = Realm.find_by( id: object.realm_id.to_i ).id
+            realm = Realm.find_by( id: object.realm_id.to_i )
+            realm_id = realm.id
+            realm_uuid realm.uuid
           elsif object.try( :realm_uuid )
-            realm_id = Realm.find_by( uuid: object.realm_uuid ).id
+            realm = Realm.find_by( uuid: object.realm_uuid )
+            realm_id = realm.id
+            realm_uuid = realm.uuid
           else
             realm_id = nil
           end
@@ -73,7 +77,6 @@ module Unimatrix
 
           if Adapter.local_product_name == 'customer_product'
             attributes.merge!(
-              realm_uuid: Realm.find( realm_id ).uuid,
               offer_uuid: Offer.find( attribtes[ :offer_id ] ).uuid,
               product_uuid: Product.find( attributes[ :product_id ] ).uuid,
               customer_uuid: Customer.find( attributes[ :customer_id ] ).uuid,
