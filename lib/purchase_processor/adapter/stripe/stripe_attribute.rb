@@ -13,14 +13,14 @@ module Unimatrix
           payments_subscription = PaymentsSubscription.find_by( provider_id: object.subscription )
           attributes[ :payments_subscription_id ] = payments_subscription.id
 
-          local_product = Adapter.local_product( payments_subscription ).id
+          local_product = Adapter.local_product( payments_subscription )
 
           # dynamically assigns id of either a realm_product, or customer_product, depending on application
           attributes[ "#{ Adapter.local_product_name }_id".to_sym ] = local_product.id
 
           if Adapter.local_product_name == 'customer_product'
             attributes[ :payments_subscription_uuid ] = payments_subscription.uuid
-            attributes[ :customer_product_uud ] = local_product.uuid
+            attributes[ :customer_product_uuid ] = local_product.uuid
           end
         end
 
