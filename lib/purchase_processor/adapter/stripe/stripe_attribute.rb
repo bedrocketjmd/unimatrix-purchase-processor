@@ -72,6 +72,7 @@ module Unimatrix
             customer_id: object.customer_id.to_i,
             device_platform: object.device_platform,
             provider: object.provider,
+            currency: object.currency,
             subtotal: object.subtotal.to_f,
             subtotal_usd: object.subtotal_usd.to_f,
             tax: object.tax.to_f,

@@ -154,8 +154,8 @@ module Unimatrix
         customer = adapter.provider_customer( payments_subscription.customer )
 
         delinquent_invoice = customer.invoices.data.detect { | invoice | !invoice.paid &&
-          invoice.subscription == provider_subscription.id  }
-
+                                                             invoice.attempted &&
+                                                             invoice.subscription == provider_subscription.id  }
         if delinquent_invoice && delinquent_invoice.closed
           delinquent_invoice.closed = false
           delinquent_invoice.save
@@ -206,7 +206,8 @@ module Unimatrix
         if StripeAdapter.transaction_valid?( transaction )
           #if payment fails, expire the CustomerProducts
           if relation.expires_at > Time.now
-            relation.update( expires_at: Time.now )
+            relation.expires_at = Time.now
+            relation.save
           end
 
           unless relation.payments_subscription.state == 'inactive'
@@ -227,7 +228,8 @@ module Unimatrix
            event.request == nil &&
            ( stripe_subscription.canceled_at == stripe_subscription.ended_at )
 
-           relation.update( expires_at: Time.at( stripe_subscription.ended_at ) )
+           relation.expires_at = ( Time.at( stripe_subscription.ended_at ) )
+           relation.save
 
            relation.payments_subscription.pause_subscription( true )
 
