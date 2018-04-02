@@ -65,7 +65,8 @@ module Unimatrix
         if PaypalAdapter.transaction_valid?( transaction )
           agreement_details = agreement.agreement_details
           unless agreement_details.next_billing_date.nil?
-            relation.update( expires_at: Time.parse( agreement_details.next_billing_date ) )
+            relation.expires_at = ( Time.parse( agreement_details.next_billing_date ) )
+            relation.save
           end
           # if its the first time subscription - subscription confirmation email
           payments = relation.payments_subscription.successful_transactions.count
@@ -92,7 +93,8 @@ module Unimatrix
         if PaypalAdapter.transaction_valid?( transaction )
           #if payment fails, expire the CustomerProducts
           if relation.expires_at > Time.now
-            relation.update( expires_at: Time.now )
+            relation.expires_at = Time.now
+            relation.save
           end
 
           unless relation.payments_subscription.state == 'inactive'
@@ -114,7 +116,8 @@ module Unimatrix
 
           PaypalAdapter.pause_subscription( agreement )
 
-          relation.update( expires_at: Time.parse( event.resource[ "agreement_details" ][ "last_payment_date" ] ) )
+          relation.expires_at = ( Time.parse( event.resource[ "agreement_details" ][ "last_payment_date" ] ) )
+          relation.save
 
           PaymentsSubscriptionMailer.payments_subscription_cancelled(
             relation.payments_subscription,
