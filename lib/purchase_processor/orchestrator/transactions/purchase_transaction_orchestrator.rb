@@ -32,11 +32,7 @@ module Unimatrix
 
             transaction_attributes = attributes_block( provider, realm, customer, offer, product, offer.price, discount, offer.currency, device_platform )
 
-            if coupon
-              # explicitly set coupon
-              transaction_attributes[ :coupon_id ] = coupon.id
-              transaction_attributes[ :coupon_uuid ] = coupon.uuid
-            end
+            transaction_attributes[ :coupon ] = coupon if coupon
 
             unless orchestrator_response.is_a?( OrchestratorError )
               if offer.price.to_f == 0.0 || ( coupon.present? && offer.price.to_f - discount.to_f <= 0 )
@@ -129,6 +125,11 @@ module Unimatrix
         attributes[ :product_uuid ] = attributes.delete( :product ).uuid
 
         attributes[ :realm_uuid ] = attributes.delete( :realm ).uuid
+
+        if attributes[ :coupon ]
+          attributes[ :coupon_id ] = attributes[ :coupon ].id
+          attributes[ :coupon_uuid ] = attributes.delete( :coupon ).uuid
+        end
 
         attributes
       end
