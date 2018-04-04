@@ -30,9 +30,12 @@ module Unimatrix
               orchestrator_response = coupon
             end
 
-            transaction_attributes = attributes_block( provider, realm, customer, offer, product, offer.price, discount, offer.currency,  device_platform )
+            transaction_attributes = attributes_block( provider, realm, customer, offer, product, offer.price, discount, offer.currency, device_platform )
 
-            transaction_attributes[ :coupon ] = coupon if coupon
+            if coupon
+              transaction_attributes[ :coupon_id ] = coupon.id
+              transaction_attributes[ :coupon_uuid ] = coupon.uuid
+            end
 
             unless orchestrator_response.is_a?( OrchestratorError )
               if offer.price.to_f == 0.0 || ( coupon.present? && offer.price.to_f - discount.to_f <= 0 )
