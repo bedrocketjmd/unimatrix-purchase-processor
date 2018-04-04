@@ -33,6 +33,7 @@ module Unimatrix
             transaction_attributes = attributes_block( provider, realm, customer, offer, product, offer.price, discount, offer.currency, device_platform )
 
             if coupon
+              # explicitly set coupon
               transaction_attributes[ :coupon_id ] = coupon.id
               transaction_attributes[ :coupon_uuid ] = coupon.uuid
             end
