@@ -53,11 +53,6 @@ module Unimatrix
                   payments_subscription = adapter.new_subscription( customer, device_platform, offer )
 
                   if payments_subscription.valid?
-                    if coupon && discount
-                      if discount == offer.price
-                        create_initial_free_transaction( payments_subscription_attributes, payments_subscription )
-                      end
-                    end
 
                     if provider == "Stripe"
                       stripe_customer = StripeCustomer.create_or_confirm_existing_source( adapter, customer, attributes )
@@ -148,6 +143,8 @@ module Unimatrix
       end
 
       def self.create_initial_free_transaction( attributes, payments_subscription )
+        adapter = FreeAdapter.new
+
         transaction_attributes = {
           payments_subscription_id:   payments_subscription.id,
           payments_subscription_uuid: payments_subscription.uuid,
@@ -167,7 +164,7 @@ module Unimatrix
           state:                      'pending'
         }
 
-        transaction = FreeAdapter.new_purchase_transaction( transaction_attributes )
+        transaction = adapter.new_purchase_transaction( transaction_attributes )
 
         if transaction.save
           transaction
@@ -177,9 +174,19 @@ module Unimatrix
       def self.process_successful_subscription( subscriber, redirect_url, payments_subscription, payments_subscription_attributes )
         if redirect_url
           payments_subscription.update( provider_id: subscriber.token )
+
+          if discount.to_f == offer.price.to_f
+            create_initial_free_transaction( payments_subscription_attributes, payments_subscription )
+          end
+
           OrchestratorRedirect.new( payments_subscription, redirect_url )
         else
           payments_subscription.update( provider_id: subscriber.id )
+
+          if payments_subscription_attributes[ :discount ].to_f == payments_subscription_attributes[ :offer ].price.to_f
+            create_initial_free_transaction( payments_subscription_attributes, payments_subscription )
+          end
+
           complete_subscription( payments_subscription, payments_subscription_attributes.merge( provider_id: subscriber.id ) )
           OrchestratorSuccess.new( payments_subscription )
         end
@@ -239,7 +246,7 @@ module Unimatrix
           subscriber.state = 'active'
         end
 
-        update_initial_transaction( subscriber )
+        update_initial_transaction( subscriber, local_product )
 
         if subscriber.valid?
           subscriber.save
@@ -248,10 +255,17 @@ module Unimatrix
         subscriber
       end
 
-      def self.update_initial_transaction( subscriber )
+      def self.update_initial_transaction( subscriber, local_product )
         transaction = Transaction.find_by( payments_subscription_uuid: subscriber.uuid, state: 'pending' )
 
         if transaction
+          if Adapter.local_product_name == 'customer_product'
+            transaction.customer_product_uuid = local_product.uuid
+            transaction.customer_product_id = local_product.id
+          else
+            transaction.update( "#{ Adapter.local_product_name }_id": local_product.id )
+          end
+
           transaction.state = 'complete'
           transaction.save
         end
