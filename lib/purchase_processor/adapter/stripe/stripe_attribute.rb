@@ -253,6 +253,7 @@ module Unimatrix
           end
 
           if attributes[ :currency ] == 'USD'
+            attributes[ :total_usd ]    =      attributes[ :total ]
             attributes[ :subtotal_usd ] =      attributes[ :subtotal ]
             attributes[ :discount_usd ] =      attributes[ :discount ]
             attributes[ :tax_usd ] =           attributes[ :tax ]
