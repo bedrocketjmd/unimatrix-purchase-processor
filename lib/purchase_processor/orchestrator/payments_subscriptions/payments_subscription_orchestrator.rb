@@ -5,7 +5,7 @@ module Unimatrix
         purchasing_realm                  = Realm.find_by( uuid: ENV[ 'MERCHANT_PURCHASING_REALM' ] ) || nil
         realm                             = Realm.find_by( id: attributes[ :realm_id ] ) || nil
         offer                             = Offer.find_by( id: attributes[ :offer_id ] )
-        product                           = Product.find_by( id: attributes[ :product_id ] )
+        product                           = Product.find_by( id: attributes[ :product_id ].to_s )
         customer                          = Customer.find_by( id: attributes[ :customer_id ] )
         payments_subscription_attributes  = attributes.delete( :subscription_attributes ) || {}
         discount                          = 0.0
