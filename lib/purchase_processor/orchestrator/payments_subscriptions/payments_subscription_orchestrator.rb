@@ -175,7 +175,7 @@ module Unimatrix
         if redirect_url
           payments_subscription.update( provider_id: subscriber.token )
 
-          if discount.to_f == offer.price.to_f
+          if payments_subscription_attributes[ :discount ].to_f == payments_subscription_attributes[ :offer ].price.to_f
             create_initial_free_transaction( payments_subscription_attributes, payments_subscription )
           end
 
