@@ -5,31 +5,31 @@ module Unimatrix
         case event.type
 
         when 'invoice.payment_succeeded'
-          StripePurchaseTransaction
+          [ StripePurchaseTransaction, 'complete' ]
 
         when 'invoice.payment_failed'
-          StripeFailedPurchaseTransaction
+          [ StripePurchaseTransaction, 'failed' ]
 
         when 'customer.subscription.deleted'
-          StripePurchaseCancellationTransaction
+          [ StripePurchaseCancellationTransaction, nil ]
 
         when 'charge.dispute.created'
-          StripeDisputeCreatedTransaction
+          [ StripeDisputeCreatedTransaction, nil ]
 
         when 'charge.dispute.funds_reinstated'
-          StripeDisputeFundsReinstatedTransaction
+          [ StripeDisputeFundsReinstatedTransaction, nil ]
 
         when 'charge.dispute.funds_withdrawn'
-          StripeDisputeFundsWithdrawnTransaction
+          [ StripeDisputeFundsWithdrawnTransaction, nil ]
 
         when 'charge.dispute.updated'
-          StripeDisputeUpdatedTransaction
+          [ StripeDisputeUpdatedTransaction, nil ]
 
         when 'charge.dispute.closed'
-          StripeDisputeClosedTransaction
+          [ StripeDisputeClosedTransaction, nil ]
 
         else
-          nil
+          [ nil, nil ]
         end
       end
 
@@ -59,7 +59,18 @@ module Unimatrix
       end
 
       def new_subscription( customer, device_platform, offer )
-        PaymentsSubscription.new( customer: customer, provider: 'Stripe', device_platform: device_platform, offer: offer )
+        if Adapter.local_product_name == 'customer_product'
+          PaymentsSubscription.new(
+            customer_id: customer.id,
+            customer_uuid: customer.uuid,
+            provider: 'Stripe',
+            device_platform: device_platform,
+            offer_id: offer.id,
+            offer_uuid: offer.uuid
+          )
+        else
+          PaymentsSubscription.new( customer: customer, provider: 'Stripe', device_platform: device_platform, offer: offer )
+        end
       end
 
       def create_plan( offer, realm )
@@ -79,20 +90,29 @@ module Unimatrix
           else
             offer.description.truncate( 22 )
           end
-        Stripe::Plan.create(
-          amount: ( offer.price * offer.currency_exponent ).to_i,
-          interval: offer.period,
-          interval_count: 1,
-          trial_period_days: trial_period,
-          name: offer.name,
-          currency: offer.currency,
-          id: "#{ offer.code_name }-#{ offer.uuid }",
-          statement_descriptor:  offer_description,
-          metadata: {
-            realm_uuid: realm.uuid,
-            offer_id: offer.id
-          }
-        )
+
+        plan_uuid = SecureRandom.hex
+
+        @stripe_plan ||=
+          begin
+            Stripe::Plan.create(
+              amount: ( offer.price.to_f * offer.currency_exponent ).to_i,
+              interval: offer.period,
+              interval_count: 1,
+              trial_period_days: trial_period,
+              name: offer.name,
+              currency: offer.currency,
+              id: "#{ offer.code_name }-#{ plan_uuid }",
+              statement_descriptor:  offer_description,
+              metadata: {
+                realm_uuid: realm.uuid,
+                offer_id: offer.id
+              }
+            )
+          rescue Stripe::InvalidRequestError => error
+            error
+          end
+        @stripe_plan
       end
 
       def subscription_from_event( event )
@@ -134,8 +154,8 @@ module Unimatrix
         customer = adapter.provider_customer( payments_subscription.customer )
 
         delinquent_invoice = customer.invoices.data.detect { | invoice | !invoice.paid &&
-          invoice.subscription == provider_subscription.id  }
-
+                                                             invoice.attempted &&
+                                                             invoice.subscription == provider_subscription.id  }
         if delinquent_invoice && delinquent_invoice.closed
           delinquent_invoice.closed = false
           delinquent_invoice.save
@@ -186,7 +206,8 @@ module Unimatrix
         if StripeAdapter.transaction_valid?( transaction )
           #if payment fails, expire the CustomerProducts
           if relation.expires_at > Time.now
-            relation.update( expires_at: Time.now )
+            relation.expires_at = Time.now
+            relation.save
           end
 
           unless relation.payments_subscription.state == 'inactive'
@@ -207,7 +228,8 @@ module Unimatrix
            event.request == nil &&
            ( stripe_subscription.canceled_at == stripe_subscription.ended_at )
 
-           relation.update( expires_at: Time.at( stripe_subscription.ended_at ) )
+           relation.expires_at = ( Time.at( stripe_subscription.ended_at ) )
+           relation.save
 
            relation.payments_subscription.pause_subscription( true )
 

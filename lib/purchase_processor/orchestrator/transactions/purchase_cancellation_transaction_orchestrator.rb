@@ -7,7 +7,7 @@ module Unimatrix
         local_product_id = "#{ Adapter.local_product_name }_id".to_sym
 
         if attributes[ :realm_id ].present? && attributes[ local_product_id ].present? && attributes[ :customer_id ].present?
-          realm = Realm.find_by( id: attributes[ :realm_id ] )
+          realm = Realm.find_by( id: attributes.delete( :realm_id ) )
 
           local_product = find_local_product( attributes[ local_product_id ] )
 

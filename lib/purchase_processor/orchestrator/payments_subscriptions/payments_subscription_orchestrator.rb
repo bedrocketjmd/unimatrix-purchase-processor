@@ -5,7 +5,7 @@ module Unimatrix
         purchasing_realm                  = Realm.find_by( uuid: ENV[ 'MERCHANT_PURCHASING_REALM' ] ) || nil
         realm                             = Realm.find_by( id: attributes[ :realm_id ] ) || nil
         offer                             = Offer.find_by( id: attributes[ :offer_id ] )
-        product                           = Product.find_by( id: attributes[ :product_id ] )
+        product                           = Product.find_by( id: attributes[ :product_id ].to_s )
         customer                          = Customer.find_by( id: attributes[ :customer_id ] )
         payments_subscription_attributes  = attributes.delete( :subscription_attributes ) || {}
         discount                          = 0.0
@@ -31,12 +31,12 @@ module Unimatrix
               orchestrator_response = coupon
             end
 
-            payments_subscription_attributes = attributes_block( provider, realm, customer, offer, product, offer.price, discount, offer.currency,  device_platform )
+            payments_subscription_attributes = attributes_block( provider, realm, customer, offer, product, offer.price.to_f, discount, offer.currency,  device_platform )
 
             payments_subscription_attributes[ :coupon ] = coupon if coupon
 
             unless orchestrator_response.is_a?( OrchestratorError )
-              if offer.price < 0.5
+              if offer.price.to_f < 0.5
                 # Charge amount too small
                 orchestrator_response =  format_error( BadRequestError, 'The subscription amount must be greater than or equal to $0.50.' )
               else
@@ -53,6 +53,7 @@ module Unimatrix
                   payments_subscription = adapter.new_subscription( customer, device_platform, offer )
 
                   if payments_subscription.valid?
+
                     if provider == "Stripe"
                       stripe_customer = StripeCustomer.create_or_confirm_existing_source( adapter, customer, attributes )
 
@@ -100,7 +101,7 @@ module Unimatrix
           CustomerProduct.where(
             customer_id: customer.id,
             product_id: product.id
-          ).present?
+          ).results.to_a.present?
         else
           false
         end
@@ -141,12 +142,51 @@ module Unimatrix
         end
       end
 
+      def self.create_initial_free_transaction( attributes, payments_subscription )
+        adapter = FreeAdapter.new
+
+        transaction_attributes = {
+          payments_subscription_id:   payments_subscription.id,
+          payments_subscription_uuid: payments_subscription.uuid,
+          customer_id:                payments_subscription.customer_id,
+          customer_uuid:              payments_subscription.customer_uuid,
+          product_id:                 payments_subscription.offer.product_id,
+          product_uuid:               payments_subscription.offer.product_uuid,
+          offer_id:                   payments_subscription.offer_id,
+          offer_uuid:                 payments_subscription.offer_uuid,
+          currency:                   payments_subscription.offer.currency,
+          realm_uuid:                 attributes[ :realm ].uuid,
+          coupon_id:                  attributes[ :coupon ].id,
+          coupon_uuid:                attributes[ :coupon ].uuid,
+          discount:                   attributes[ :discount ],
+          subtotal:                   attributes[ :subtotal ],
+          device_platform:            attributes[ :device_platform ],
+          state:                      'pending'
+        }
+
+        transaction = adapter.new_purchase_transaction( transaction_attributes )
+
+        if transaction.save
+          transaction
+        end
+      end
+
       def self.process_successful_subscription( subscriber, redirect_url, payments_subscription, payments_subscription_attributes )
         if redirect_url
           payments_subscription.update( provider_id: subscriber.token )
+
+          if payments_subscription_attributes[ :discount ].to_f == payments_subscription_attributes[ :offer ].price.to_f
+            create_initial_free_transaction( payments_subscription_attributes, payments_subscription )
+          end
+
           OrchestratorRedirect.new( payments_subscription, redirect_url )
         else
           payments_subscription.update( provider_id: subscriber.id )
+
+          if payments_subscription_attributes[ :discount ].to_f == payments_subscription_attributes[ :offer ].price.to_f
+            create_initial_free_transaction( payments_subscription_attributes, payments_subscription )
+          end
+
           complete_subscription( payments_subscription, payments_subscription_attributes.merge( provider_id: subscriber.id ) )
           OrchestratorSuccess.new( payments_subscription )
         end
@@ -181,19 +221,54 @@ module Unimatrix
         period_attributes = { expires_at: nil }
         offer = customer_product_attributes[ :offer ]
         period_attributes = { expires_at: ( Time.now.utc + 1.send( offer.period ) ) }
-        customer_product = CustomerProduct.find_or_initialize_by( customer_product_attributes )
+        customer_product = CustomerProduct.new( customer_product_attributes )
         customer_product.assign_attributes( customer_product_attributes.merge( period_attributes ) )
         if customer_product.save
           customer_product
         end
       end
 
-      def self.update_subscriber( subscriber, attributes, customer_product )
+      def self.update_subscriber( subscriber, attributes, local_product )
         if subscriber.provider_id.nil?
           subscriber.provider_id = attributes[ :provider_id ]
         end
-        subscriber.customer_product = customer_product
-        subscriber.save
+
+        if Adapter.local_product_name == 'customer_product'
+          subscriber.attributes.merge!(
+            :customer_product_uuid => local_product.uuid,
+            :customer_product_id => local_product.id
+          )
+        else
+          subscriber.update( "#{ Adapter.local_product_name }_id": local_product.id )
+        end
+
+        unless subscriber.state == 'active'
+          subscriber.state = 'active'
+        end
+
+        update_initial_transaction( subscriber, local_product )
+
+        if subscriber.valid?
+          subscriber.save
+        end
+
+        subscriber
+      end
+
+      def self.update_initial_transaction( subscriber, local_product )
+        transaction = Transaction.find_by( payments_subscription_uuid: subscriber.uuid, state: 'pending' )
+
+        if transaction
+          if Adapter.local_product_name == 'customer_product'
+            transaction.customer_product_uuid = local_product.uuid
+            transaction.customer_product_id = local_product.id
+          else
+            transaction.update( "#{ Adapter.local_product_name }_id": local_product.id )
+          end
+
+          transaction.state = 'complete'
+          transaction.save
+        end
       end
 
       def self.find_or_create_realm( realm, account_name )
@@ -222,16 +297,6 @@ module Unimatrix
         if subscriber.save
           subscriber
         end
-      end
-
-
-      def self.update_subscriber( subscriber, attributes, local_product )
-        if subscriber.provider_id.nil?
-          subscriber.provider_id = attributes[ :provider_id ]
-        end
-
-        subscriber.update( "#{ Adapter.local_product_name }_id": local_product.id )
-        subscriber.save
       end
 
       private_class_method :existing_local_product, :create_stripe_subscriber,

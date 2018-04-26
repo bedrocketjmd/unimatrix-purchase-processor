@@ -27,7 +27,7 @@ module Unimatrix
       end
 
       def self.apply_coupons( coupon_code, offer )
-        if coupon_code && offer.price > 0.0
+        if coupon_code && offer.price.to_f > 0.0
           coupon = Coupon.find_by( code: coupon_code )
 
           if coupon && coupon.active?

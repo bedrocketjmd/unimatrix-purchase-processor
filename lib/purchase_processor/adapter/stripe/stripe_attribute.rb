@@ -12,8 +12,16 @@ module Unimatrix
         if object.try( :subscription )
           payments_subscription = PaymentsSubscription.find_by( provider_id: object.subscription )
           attributes[ :payments_subscription_id ] = payments_subscription.id
+
+          local_product = Adapter.local_product( payments_subscription )
+
           # dynamically assigns id of either a realm_product, or customer_product, depending on application
-          attributes[ "#{ Adapter.local_product_name }_id".to_sym ] = Adapter.local_product( payments_subscription ).id
+          attributes[ "#{ Adapter.local_product_name }_id".to_sym ] = local_product.id
+
+          if Adapter.local_product_name == 'customer_product'
+            attributes[ :payments_subscription_uuid ] = payments_subscription.uuid
+            attributes[ :customer_product_uuid ] = local_product.uuid
+          end
         end
 
         if object.try(:lines)
@@ -46,9 +54,13 @@ module Unimatrix
       def attributes_from_metadata( object )
         begin
           if object.try( :realm_id )
-            realm_id = Realm.find_by( id: object.realm_id.to_i ).id
+            realm = Realm.find_by( id: object.realm_id.to_i )
+            realm_id = realm.id
+            realm_uuid = realm.uuid
           elsif object.try( :realm_uuid )
-            realm_id = Realm.find_by( uuid: object.realm_uuid ).id
+            realm = Realm.find_by( uuid: object.realm_uuid )
+            realm_id = realm.id
+            realm_uuid = realm.uuid
           else
             realm_id = nil
           end
@@ -60,11 +72,23 @@ module Unimatrix
             customer_id: object.customer_id.to_i,
             device_platform: object.device_platform,
             provider: object.provider,
+            currency: object.currency,
             subtotal: object.subtotal.to_f,
             subtotal_usd: object.subtotal_usd.to_f,
             tax: object.tax.to_f,
             total: object.total.to_f
           }
+
+          if Adapter.local_product_name == 'customer_product'
+            attributes.merge!(
+              realm_uuid: realm_uuid,
+              offer_uuid: Offer.find( attributes[ :offer_id ] ).uuid,
+              product_uuid: Product.find( attributes[ :product_id ] ).uuid,
+              customer_uuid: Customer.find( attributes[ :customer_id ] ).uuid,
+            )
+
+            attributes.delete( :realm_id )
+          end
 
           attributes
         rescue
@@ -229,6 +253,7 @@ module Unimatrix
           end
 
           if attributes[ :currency ] == 'USD'
+            attributes[ :total_usd ]    =      attributes[ :total ]
             attributes[ :subtotal_usd ] =      attributes[ :subtotal ]
             attributes[ :discount_usd ] =      attributes[ :discount ]
             attributes[ :tax_usd ] =           attributes[ :tax ]
