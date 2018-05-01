@@ -12,7 +12,7 @@ module Unimatrix
           expires_in: 10.minutes
         ) do
 
-          settings = Regent.retrieve_settings( realm_uuid )
+          settings = RegentRequest.retrieve_settings( realm_uuid )
 
           if settings
             settings.detect do | setting |
