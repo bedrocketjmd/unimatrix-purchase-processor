@@ -22,7 +22,18 @@ module Unimatrix
       end
 
       def new_subscription( customer, device_platform, offer )
-        PaymentsSubscription.new( customer: customer, provider: 'Paypal', device_platform: device_platform, offer: offer, state: 'inactive' )
+        if Adapter.local_product_name == 'customer_product'
+          PaymentsSubscription.new(
+            customer_id: customer.id,
+            customer_uuid: customer.uuid,
+            provider: 'Paypal',
+            device_platform: device_platform,
+            offer_id: offer.id,
+            offer_uuid: offer.uuid
+          )
+        else
+          PaymentsSubscription.new( customer: customer, provider: 'Paypal', device_platform: device_platform, offer: offer, state: 'inactive' )
+        end
       end
 
       def billing_agreement_from_event( event )
