@@ -58,7 +58,13 @@ module Unimatrix
               # what is the error thats getting returned when we save this
               if revoke_access
                 local_product = Adapter.local_product( reference_transaction )
-                local_product.update( expires_at: Time.now )
+                if Adapter.local_product_name == 'customer_product'
+                  local_product.attributes[ 'expires_at' ] = Time.now
+                  local_product.changed_attributes[ :expires_at ] = Time.now
+                  local_product.save
+                else
+                  local_product.update( expires_at: Time.now )
+                end
               end
 
               unless refund_transaction.type_name === 'free_refund_transaction'

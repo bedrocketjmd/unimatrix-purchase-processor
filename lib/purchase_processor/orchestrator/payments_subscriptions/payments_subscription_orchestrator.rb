@@ -223,6 +223,11 @@ module Unimatrix
         period_attributes = { expires_at: ( Time.now.utc + 1.send( offer.period ) ) }
         customer_product = CustomerProduct.new( customer_product_attributes )
         customer_product.assign_attributes( customer_product_attributes.merge( period_attributes ) )
+
+        customer_product_attributes.each do | key, value |
+          customer_product.changed_attributes[ key ] = value
+        end
+
         if customer_product.save
           customer_product
         end

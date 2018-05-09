@@ -230,6 +230,10 @@ module Unimatrix
         else
           customer_product_attributes = attributes.slice( :provider, :realm_uuid, :customer_uuid, :offer_uuid, :product_uuid )
           local_product = create_customer_product( customer_product_attributes, period_attributes )
+          local_product_attributes = customer_product_attributes.merge( period_attributes )
+          local_product_attributes.each do | key, value |
+            local_product.changed_attributes[ key ] = value
+          end
         end
 
         if transaction
