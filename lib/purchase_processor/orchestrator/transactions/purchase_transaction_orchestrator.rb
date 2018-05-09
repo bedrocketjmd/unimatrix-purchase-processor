@@ -3,10 +3,10 @@ module Unimatrix
     class PurchaseTransactionOrchestrator < TransactionOrchestrator
       def self.create_transaction( provider, attributes, request_attributes = nil )
         purchasing_realm         = Realm.find_by( uuid: ENV[ 'MERCHANT_PURCHASING_REALM' ] ) || nil
-        realm                    = Realm.find_by( id: attributes[ :realm_id ] ) || nil
-        offer                    = Offer.find_by( id: attributes[ :offer_id ] )
-        product                  = Product.find_by( id: attributes[ :product_id ] )
-        customer                 = Customer.find_by( id: attributes[ :customer_id ] )
+        realm                    = Realm.find_by( id: attributes[ :realm_id ].to_s ) || nil
+        offer                    = Offer.find_by( id: attributes[ :offer_id ].to_s )
+        product                  = Product.find_by( id: attributes[ :product_id ].to_s )
+        customer                 = Customer.find_by( id: attributes[ :customer_id ].to_s )
         subscription_attributes  = attributes.delete( :subscription_attributes ) || {}
         discount                 = 0.0
         coupon                   = nil
@@ -30,26 +30,28 @@ module Unimatrix
               orchestrator_response = coupon
             end
 
-            transaction_attributes = attributes_block( provider, realm, customer, offer, product, offer.price, discount, offer.currency,  device_platform )
+            transaction_attributes = attributes_block( provider, realm, customer, offer, product, offer.price, discount, offer.currency, device_platform )
 
             transaction_attributes[ :coupon ] = coupon if coupon
 
             unless orchestrator_response.is_a?( OrchestratorError )
-              if offer.price == 0.0 || ( coupon.present? && offer.price - discount <= 0 )
+              if offer.price.to_f == 0.0 || ( coupon.present? && offer.price.to_f - discount.to_f <= 0 )
                 # Free offer or 100% discount
 
                 adapter = FreeAdapter.new
 
+                transaction_attributes = extract_attribute_ids( transaction_attributes )
                 transaction = adapter.new_purchase_transaction( transaction_attributes )
 
                 complete_transaction( transaction, transaction_attributes )
 
-                if transaction.persisted?
+                # below is a substitution for transaction.persisted?
+                if Transaction.find_by( uuid: transaction.uuid ).present?
                   orchestrator_response = OrchestratorSuccess.new( transaction )
                 else
                   orchestrator_response = format_error( BadRequestError, transaction.errors.messages )
                 end
-              elsif offer.price < 0.5
+              elsif offer.price.to_f < 0.5
                 # Charge amount too small
                 orchestrator_response = format_error( BadRequestError, 'The charge amount must be greater than or equal to $0.50.' )
               else
@@ -63,6 +65,9 @@ module Unimatrix
                   transaction_attributes[ :tax_percent ] = tax_helper.tax_percentage
                   transaction_attributes[ :tax ] = tax_helper.total_tax
 
+                  transaction_attributes = extract_attribute_ids( transaction_attributes )
+                  transaction_attributes = set_monetary_values( transaction_attributes )
+
                   transaction = adapter.new_purchase_transaction( transaction_attributes )
 
                   if transaction.valid?
@@ -72,7 +77,7 @@ module Unimatrix
 
                     charge, redirect_url = adapter.create_charge(
                       customer:           customer,
-                      amount:             ( ( offer.price - discount ) + tax_helper.total_tax ).to_f,
+                      amount:             ( ( offer.price.to_f - discount.to_f ) + tax_helper.total_tax ).to_f,
                       offer:              offer,
                       currency:           offer.currency,
                       metadata:           metadata.merge( attributes ),
@@ -109,12 +114,32 @@ module Unimatrix
 
       #----------------------------------------------------------------------------
 
+      def self.extract_attribute_ids( attributes )
+        attributes[ :customer_id ] = attributes[ :customer ].id
+        attributes[ :customer_uuid ] = attributes.delete( :customer ).uuid
+
+        attributes[ :offer_id ] = attributes[ :offer ].id
+        attributes[ :offer_uuid ] = attributes.delete( :offer ).uuid
+
+        attributes[ :product_id ] = attributes[ :product ].id
+        attributes[ :product_uuid ] = attributes.delete( :product ).uuid
+
+        attributes[ :realm_uuid ] = attributes.delete( :realm ).uuid
+
+        if attributes[ :coupon ]
+          attributes[ :coupon_id ] = attributes[ :coupon ].id
+          attributes[ :coupon_uuid ] = attributes.delete( :coupon ).uuid
+        end
+
+        attributes
+      end
+
       def self.existing_local_product( customer, product )
         if Adapter.local_product_name == 'customer_product'
           CustomerProduct.where(
             customer_id: customer.id,
             product_id: product.id
-          ).present?
+          ).results.to_a.length > 0
         else
           false
         end
@@ -176,15 +201,19 @@ module Unimatrix
       end
 
       def self.create_customer_product( customer_product_attributes, period_attributes )
-        offer = customer_product_attributes[ :offer ]
+        offer = Offer.find_by( uuid: customer_product_attributes[ :offer_uuid ] )
 
         if offer.period.present?
           period_attributes = { expires_at: ( Time.now.utc + 1.send( offer.period ) ) }
         end
 
-        customer_product = CustomerProduct.find_or_initialize_by( customer_product_attributes )
+        customer_product = CustomerProduct.find_by( customer_product_attributes )
 
-        customer_product.assign_attributes( customer_product_attributes.merge( period_attributes ) )
+        if customer_product
+          customer_product.assign_attributes( customer_product_attributes.merge( period_attributes ) )
+        else
+          customer_product = CustomerProduct.new( customer_product_attributes.merge( period_attributes ) )
+        end
 
         if customer_product.save
           customer_product
@@ -199,12 +228,16 @@ module Unimatrix
           realm_product_attributes = { provider: attributes[ :provider ], payments_subscription_id: payments_subscription.id, offer: attributes[ :offer ] }
           local_product = create_realm_product( realm_product_attributes, period_attributes )
         else
-          customer_product_attributes = attributes.slice( :provider, :realm, :customer, :offer, :product )
+          customer_product_attributes = attributes.slice( :provider, :realm_uuid, :customer_uuid, :offer_uuid, :product_uuid )
           local_product = create_customer_product( customer_product_attributes, period_attributes )
+          local_product_attributes = customer_product_attributes.merge( period_attributes )
+          local_product_attributes.each do | key, value |
+            local_product.changed_attributes[ key ] = value
+          end
         end
 
         if transaction
-          transaction.update( "#{ Adapter.local_product_name }_id": local_product.id )
+          transaction.update( { "#{ Adapter.local_product_name }_id": local_product.id, "#{ Adapter.local_product_name }_uuid": local_product.uuid } )
           transaction.save
 
           if transaction.valid?
@@ -222,6 +255,20 @@ module Unimatrix
         end
 
         return transaction
+      end
+
+      def self.set_monetary_values( attributes )
+        monetary_types = [ 'float', 'integer' ]
+
+        attributes.each do | key, value |
+          if monetary_types.index( Transaction.repository.mappings.properties[ key.to_s ][ 'type' ] )
+            type_index = monetary_types.index( Transaction.repository.mappings.properties[ key.to_s ][ 'type' ] )
+            conversion_letter = monetary_types[ type_index ].split( '' ).first
+            attributes[ key ] = value.send( "to_#{ conversion_letter }" )
+          end
+        end
+
+        attributes
       end
 
       private_class_method :existing_local_product, :process_successful_charge

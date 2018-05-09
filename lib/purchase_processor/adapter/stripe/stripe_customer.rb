@@ -21,7 +21,6 @@ module Unimatrix
             customer_id: customer.id
           }
         }
-
         if customer.stripe_customer_uuid.present?
           begin
             result = Stripe::Customer.retrieve( customer.stripe_customer_uuid )
@@ -35,7 +34,11 @@ module Unimatrix
           result = Stripe::Customer.create( attributes )
         end
 
-        customer.update( stripe_customer_uuid: result.id )
+
+        customer_resources = customer.resources ? customer.resources : {}
+        customer_resources[ 'stripe_customer_uuid' ] = result.id
+        customer.resources = customer_resources
+        customer.save
         result
       end
 

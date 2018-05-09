@@ -7,11 +7,11 @@ module Unimatrix
         local_product_id = "#{ Adapter.local_product_name }_id".to_sym
 
         if attributes[ :realm_id ].present? && attributes[ local_product_id ].present? && attributes[ :customer_id ].present?
-          realm = Realm.find_by( id: attributes[ :realm_id ] )
+          realm = Realm.find_by( id: attributes.delete( :realm_id ) )
 
           local_product = find_local_product( attributes[ local_product_id ] )
 
-          if local_product.present? && local_product.customer_id.to_i == attributes[ :customer_id ].to_i
+          if local_product.present? && local_product.customer_id == attributes[ :customer_id ]
             if attributes[ :payments_subscription_id ].present?
               at_period_end = attributes[ :at_period_end ]
 

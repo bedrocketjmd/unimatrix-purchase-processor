@@ -11,7 +11,7 @@ module Unimatrix
 
         object_name = event.resource_type.downcase
 
-        payments_subscription = PaymentsSubscription.where( provider_id: object[ 'billing_agreement_id' ] ).first
+        payments_subscription = PaymentsSubscription.find_by( provider_id: object[ 'billing_agreement_id' ] )
 
         attributes = {}
 
@@ -36,13 +36,27 @@ module Unimatrix
         local_product = Adapter.local_product( payments_subscription )
 
         attributes = {
-          realm_id: local_product.realm_id,
+          realm_uuid: local_product.realm_uuid,
           offer_id: local_product.offer_id,
           product_id: local_product.product_id,
           customer_id: local_product.customer_id,
           device_platform: payments_subscription.device_platform,
           provider: "Paypal",
         }
+
+        if Adapter.local_product_name == 'customer_product'
+          attributes.delete( :realm_id )
+
+          attributes.merge!(
+            realm_uuid: local_product.realm_uuid,
+            offer_uuid: local_product.offer_uuid,
+            product_uuid: local_product.product_uuid,
+            customer_uuid: local_product.customer_uuid,
+            customer_product_id: local_product.id,
+            customer_product_uuid: local_product.uuid,
+            payments_subscription_uuid: payments_subscription.uuid
+          )
+        end
 
         attributes.merge!( transaction_attributes )
       end

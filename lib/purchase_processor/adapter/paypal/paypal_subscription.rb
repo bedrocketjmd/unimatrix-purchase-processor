@@ -22,7 +22,18 @@ module Unimatrix
       end
 
       def new_subscription( customer, device_platform, offer )
-        PaymentsSubscription.new( customer: customer, provider: 'Paypal', device_platform: device_platform, offer: offer, state: 'inactive' )
+        if Adapter.local_product_name == 'customer_product'
+          PaymentsSubscription.new(
+            customer_id: customer.id,
+            customer_uuid: customer.uuid,
+            provider: 'Paypal',
+            device_platform: device_platform,
+            offer_id: offer.id,
+            offer_uuid: offer.uuid
+          )
+        else
+          PaymentsSubscription.new( customer: customer, provider: 'Paypal', device_platform: device_platform, offer: offer, state: 'inactive' )
+        end
       end
 
       def billing_agreement_from_event( event )
@@ -75,21 +86,11 @@ module Unimatrix
             plan
           else
             #this means we couldn't activate the plans
-            error = ErrorHash.convert( plan.error )
-            return OrchestratorError.new(
-              MalformedParameterError,
-              "There was an error creating the PayPal Plan, please try again later." +
-              error.message
-            )
+            return ErrorHash.convert( plan.error )
           end
         else
           #this means we couldn't create the plan
-          error = ErrorHash.convert( plan.error )
-          return OrchestratorError.new(
-            MalformedParameterError,
-            "There was an error creating the PayPal Plan, please try again later." +
-            error.message
-          )
+          return ErrorHash.convert( plan.error )
         end
       end
 
@@ -124,10 +125,11 @@ module Unimatrix
         payment_definitions = []
 
         charge_cycle = calculate_charge_cycle( offer )
+        plan_uuid = SecureRandom.hex
 
         regular_payment =
           {
-            name: "#{ offer.code_name }-#{ offer.uuid }",
+            name: "#{ offer.code_name }-#{ plan_uuid }",
             type: "REGULAR",
             frequency_interval: 1,
             frequency: offer.period,
@@ -153,7 +155,7 @@ module Unimatrix
           trial_period_cycles = calculate_trial_period( offer.trial_period )
 
           trial_payment = {
-            name: "#{ offer.code_name }-#{ offer.uuid }-trial",
+            name: "#{ offer.code_name }-#{ plan_uuid }-trial",
             type: "TRIAL",
             frequency_interval: 1,
             frequency: trial_period_cycles[ :frequency ],
@@ -196,7 +198,7 @@ module Unimatrix
 
         if payments_subscription_attributes[ :discount ]
           agreement_start_date = ( Time.now + 1.send( payment_definitions.frequency.downcase ) + 1.minutes ).iso8601
-          setup_fee = offer.price - payments_subscription_attributes[ :discount ]
+          setup_fee = offer.price.to_f - payments_subscription_attributes[ :discount ]
         else
           agreement_start_date = ( Time.now + 1.minutes ).iso8601
           setup_fee = 0
