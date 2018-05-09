@@ -54,7 +54,7 @@ module Unimatrix
       def attributes_from_metadata( object )
         begin
           if object.try( :realm_id )
-            realm = Realm.find_by( id: object.realm_id.to_i )
+            realm = Realm.find_by( id: object.realm_id )
             realm_id = realm.id
             realm_uuid = realm.uuid
           elsif object.try( :realm_uuid )
@@ -67,9 +67,9 @@ module Unimatrix
 
           attributes = {
             realm_id: realm_id,
-            offer_id: object.offer_id.to_i,
-            product_id: object.product_id.to_i,
-            customer_id: object.customer_id.to_i,
+            offer_id: object.offer_id,
+            product_id: object.product_id,
+            customer_id: object.customer_id,
             device_platform: object.device_platform,
             provider: object.provider,
             currency: object.currency,
