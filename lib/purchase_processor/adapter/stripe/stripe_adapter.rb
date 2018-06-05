@@ -11,13 +11,12 @@ module Unimatrix
           [ realm_uuid, '_dealer_test_setting' ],
           expires_in: 10.minutes
         ) do
+          settings = false
 
-          settings = Regent.retrieve_settings( realm_uuid )
-
-          if settings
-            settings.detect do | setting |
-              setting[ 'name' ] == 'com.boxxspring.payments.test'
-            end
+          if ENV[ 'RAILS_ENV' ] == 'test'
+            settings = true
+          else
+            settings
           end
         end
 
