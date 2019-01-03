@@ -11,7 +11,7 @@ module Unimatrix
           return OrchestratorSuccess.new( transaction )
         else
           return OrchestratorError.new(
-            BadRequestError,
+            ::BadRequestError,
             transaction.errors.messages
           )
         end
@@ -36,7 +36,7 @@ module Unimatrix
             discount = coupon.discount
             [ coupon, discount ]
           else
-           format_error( BadRequestError, 'Charge could not be completed successfully. The coupon does not exist or is no longer active.' )
+           format_error( ::BadRequestError, 'Charge could not be completed successfully. The coupon does not exist or is no longer active.' )
           end
         else
           [ nil, 0.0 ]

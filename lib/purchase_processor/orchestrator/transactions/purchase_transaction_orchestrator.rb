@@ -47,11 +47,11 @@ module Unimatrix
                 if transaction.persisted?
                   orchestrator_response = OrchestratorSuccess.new( transaction )
                 else
-                  orchestrator_response = format_error( BadRequestError, transaction.errors.messages )
+                  orchestrator_response = format_error( ::BadRequestError, transaction.errors.messages )
                 end
               elsif offer.price < 0.5
                 # Charge amount too small
-                orchestrator_response = format_error( BadRequestError, 'The charge amount must be greater than or equal to $0.50.' )
+                orchestrator_response = format_error( ::BadRequestError, 'The charge amount must be greater than or equal to $0.50.' )
               else
                 # Standard charge
                 adapter = "Unimatrix::PurchaseProcessor::#{ provider }Adapter".constantize.new
@@ -83,25 +83,25 @@ module Unimatrix
                     if !charge.is_a?( Stripe::CardError ) && adapter.charge_successful?( charge )
                       orchestrator_response = process_successful_charge( charge, transaction, transaction_attributes, redirect_url )
                     elsif charge.is_a?( Stripe::CardError )
-                      orchestrator_response = format_error( PaymentError, charge.json_body[ :error ][ :message ] )
+                      orchestrator_response = format_error( ::PaymentError, charge.json_body[ :error ][ :message ] )
                     else
-                      orchestrator_response = format_error( PaymentError, 'There was an error charging your card. Please try again later.' )
+                      orchestrator_response = format_error( ::PaymentError, 'There was an error charging your card. Please try again later.' )
                     end
                   else
-                    orchestrator_response = format_error( BadRequestError, transaction.errors.messages )
+                    orchestrator_response = format_error( ::BadRequestError, transaction.errors.messages )
                   end
                 else
-                  orchestrator_response = format_error( PaymentError, 'There was an error processing your payment and your card was not charged. Please try again later.' )
+                  orchestrator_response = format_error( ::PaymentError, 'There was an error processing your payment and your card was not charged. Please try again later.' )
                 end
               end
             else
               orchestrator_response
             end
           else
-            orchestrator_response = format_error( BadRequestError, 'Customer already has access to this product.' )
+            orchestrator_response = format_error( ::BadRequestError, 'Customer already has access to this product.' )
           end
         else
-          orchestrator_response = format_error( MissingParameterError, 'One or more of the required parameters is missing: realm_id, offer_id, customer_id, product_id.' )
+          orchestrator_response = format_error( ::MissingParameterError, 'One or more of the required parameters is missing: realm_id, offer_id, customer_id, product_id.' )
         end
 
         orchestrator_response
@@ -134,7 +134,7 @@ module Unimatrix
         else
           # It would be bad if this error ever occurred because that would mean
           # a charge has been made but access was not granted.
-          format_error( BadRequestError, 'There was an error saving your transaction. Please contact your administrator.' )
+          format_error( ::BadRequestError, 'There was an error saving your transaction. Please contact your administrator.' )
         end
       end
 
@@ -215,7 +215,7 @@ module Unimatrix
               'Thank you for your order!'
             ).deliver_now
           else
-            BadRequestError.new(
+            ::BadRequestError.new(
               'Your order could not be saved'
             )
           end

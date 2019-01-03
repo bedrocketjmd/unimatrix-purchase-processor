@@ -25,21 +25,21 @@ module Unimatrix
                   create_canceled_transaction( adapter, customer, attributes, at_period_end, local_product )
                 else
                   # could not find customer with that id
-                  orchestrator_response = format_error( NotFoundError, 'A customer could not be found with the given id.' )
+                  orchestrator_response = format_error( ::NotFoundError, 'A customer could not be found with the given id.' )
                 end
               else
-                orchestrator_response = format_error( MalformedParameterError, 'Missing or invalid required parameter at_period_end.' )
+                orchestrator_response = format_error( ::MalformedParameterError, 'Missing or invalid required parameter at_period_end.' )
               end
             else
               # payment type must be subscription to cancel
-              orchestrator_response = format_error( MalformedParameterError, 'The offer must be a reoccuring subscription in order to cancel it.' )
+              orchestrator_response = format_error( ::MalformedParameterError, 'The offer must be a reoccuring subscription in order to cancel it.' )
             end
           else
-            orchestrator_response = format_error( MalformedParameterError, 'A customer product could not be found or is not related to the customer.')
+            orchestrator_response = format_error( ::MalformedParameterError, 'A customer product could not be found or is not related to the customer.')
           end
         else
           # render missing parameter error
-          orchestrator_response = format_error( MissingParameterError, 'Missing required parameters: realm_id, customer_product_id, and customer_id.' )
+          orchestrator_response = format_error( ::MissingParameterError, 'Missing required parameters: realm_id, customer_product_id, and customer_id.' )
         end
         return orchestrator_response
       end
@@ -72,14 +72,14 @@ module Unimatrix
               orchestrator_response = OrchestratorSuccess.new( transaction )
             else
               # stripe subscription not found
-              orchestrator_response = format_error( NotFoundError, 'A stripe subscription could not be found with the given provider_id.' )
+              orchestrator_response = format_error( ::NotFoundError, 'A stripe subscription could not be found with the given provider_id.' )
             end
           else
             # cannot find stripe customer
-            orchestrator_response = format_error( NotFoundError, 'A stripe customer could not be found with the given stripe_customer_uuid.' )
+            orchestrator_response = format_error( ::NotFoundError, 'A stripe customer could not be found with the given stripe_customer_uuid.' )
           end
         rescue Stripe::StripeError => error
-          orchestrator_response = format_error( BadRequestError, "#{ error.message }" )
+          orchestrator_response = format_error( ::BadRequestError, "#{ error.message }" )
         end
       end
 

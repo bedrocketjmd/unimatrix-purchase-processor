@@ -66,16 +66,16 @@ module Unimatrix
               end
             else
 
-              orchestrator_response = format_error( BadRequestError, refund_transaction.errors.messages )
+              orchestrator_response = format_error( ::BadRequestError, refund_transaction.errors.messages )
             end
 
             orchestrator_response = orchestrator_response || OrchestratorSuccess.new( refund_transaction )
           else
-            orchestrator_response = format_error( MissingParameterError, 'Reference transaction does not have a payment_id ' +
+            orchestrator_response = format_error( ::MissingParameterError, 'Reference transaction does not have a payment_id ' +
             'which is required for refunding, or the refund period has passed.' )
           end
         else
-          orchestrator_response = format_error( NotFoundError, 'No purchase transaction exists with the reference id. Cannot refund.' )
+          orchestrator_response = format_error( ::NotFoundError, 'No purchase transaction exists with the reference id. Cannot refund.' )
         end
         return orchestrator_response
       end

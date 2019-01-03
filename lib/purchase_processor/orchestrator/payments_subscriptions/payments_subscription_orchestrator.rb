@@ -38,7 +38,7 @@ module Unimatrix
             unless orchestrator_response.is_a?( OrchestratorError )
               if offer.price < 0.5
                 # Charge amount too small
-                orchestrator_response =  format_error( BadRequestError, 'The subscription amount must be greater than or equal to $0.50.' )
+                orchestrator_response =  format_error( ::BadRequestError, 'The subscription amount must be greater than or equal to $0.50.' )
               else
                 # Standard subscription
                 adapter = "Unimatrix::PurchaseProcessor::#{ provider }Adapter".constantize.new
@@ -69,25 +69,25 @@ module Unimatrix
                     if !subscriber.is_a?( Stripe::CardError ) && adapter.subscription_successful?( subscriber ) && !subscriber.is_a?( OrchestratorError )
                       orchestrator_response = process_successful_subscription( subscriber, redirect_url, payments_subscription, payments_subscription_attributes )
                     elsif subscriber.is_a?( Stripe::CardError )
-                      orchestrator_response = format_error( PaymentError, subscriber.json_body[ :error ][ :message ] )
+                      orchestrator_response = format_error( ::PaymentError, subscriber.json_body[ :error ][ :message ] )
                     else
-                      orchestrator_response = format_error( PaymentError, 'There was an error processing your subscription. Please try again later.' )
+                      orchestrator_response = format_error( ::PaymentError, 'There was an error processing your subscription. Please try again later.' )
                     end
                   else
-                    orchestrator_response = format_error( BadRequestError, payments_subscription.errors.messages )
+                    orchestrator_response = format_error( ::BadRequestError, payments_subscription.errors.messages )
                   end
                 else
-                  orchestrator_response = format_error( PaymentError, 'There was an error processing your payment and your card was not charged. Please try again later.' )
+                  orchestrator_response = format_error( ::PaymentError, 'There was an error processing your payment and your card was not charged. Please try again later.' )
                 end
               end
             else
               orchestrator_response
             end
           else
-            orchestrator_response = format_error( BadRequestError, 'Customer already has access to this product.' )
+            orchestrator_response = format_error( ::BadRequestError, 'Customer already has access to this product.' )
           end
         else
-          orchestrator_response = format_error( MissingParameterError, 'One or more of the required parameters is missing: realm_id, offer_id, customer_id, product_id.' )
+          orchestrator_response = format_error( ::MissingParameterError, 'One or more of the required parameters is missing: realm_id, offer_id, customer_id, product_id.' )
         end
         orchestrator_response
       end
@@ -137,7 +137,7 @@ module Unimatrix
 
           [ subscriber, redirect_url ]
         else
-          format_error( PaymentError, 'There was an error processing your subscription. Please try again later.' )
+          format_error( ::PaymentError, 'There was an error processing your subscription. Please try again later.' )
         end
       end
 
@@ -169,7 +169,7 @@ module Unimatrix
               'Thank you for your subscription!'
             ).deliver_now
           else
-            BadRequestError.new(
+            ::BadRequestError.new(
               'Your order could not be saved'
             )
           end
